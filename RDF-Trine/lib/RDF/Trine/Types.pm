@@ -44,7 +44,7 @@ use MooseX::Types -declare => [
     'TrineLiteral',
     'TrineResource',
 
-    'TrineLiteralOrTrineResorce',
+    'TrineLiteralOrTrineResource',
     'TrineBlankOrUndef',
 
     'TrineStore',
@@ -72,17 +72,27 @@ BEGIN {
 =cut
 
 
-=head3 TrineNode NOCOERCION
+=head3 TrineNode
 
 =cut
 
 subtype TrineNode,
     as Object,
-    where {$_->isa('RDF::Trine::Node::Blank') || $_->isa('RDF::Trine::Node::Resource')};
+    where { $_->does('RDF::Trine::Node::API::BaseNode') };
 
 =head3 TrineResource 
 
-Coercion delegated to MooseX::Types::URI
+A RDF::Trine::Node::Resource
+
+Can be coerced from
+* String
+* URI (GAAS' CPAN URI module)
+* Path::Class::File
+* Moosex::Types::Path::Class::File
+* Path::Class::Dir
+* Moosex::Types::Path::Class::Dir
+* ScalarRef (for 'data:' URIs, i.e. base64 encoded data, like images)
+* HashRef (using URI::FromHash)
 
 =cut
 
@@ -106,7 +116,9 @@ class_type TrineBlank, { class => 'RDF::Trine::Node::Blank' };
 
 =head3 TrineModel
 
-No Coercion
+Coercion from
+* Undef (temporary_model)
+* Anything that can be coerced to UriStr (by using RDF::Trine::Parser->parse_url_into_model)
 
 =cut
 
@@ -241,7 +253,9 @@ coerce( TrineModel,
     from Undef, via { RDF::Trine::Model->temporary_model },
     from UriStr, via { 
         my $m = TrineModel->coerce;
-        RDF::Trine::Parser->parse_url_into_model( $_, $m );
+        my $uri = UriStr->coerce($_);
+        print $uri;
+        RDF::Trine::Parser->parse_url_into_model( $uri, $m );
         return $m;
     },
 );

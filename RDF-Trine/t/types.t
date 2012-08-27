@@ -14,6 +14,7 @@ use_ok 'RDF::Trine::Types';
 
 {
     use RDF::Trine::Types qw(TrineLiteral);
+    diag 'TrineLiteral';
     my $fixtures = {
         values => {
             int => 23,
@@ -38,9 +39,24 @@ use_ok 'RDF::Trine::Types';
 
 {
     use RDF::Trine::Types qw(TrineResource);
+    diag 'TrineResource';
     is_deeply iri('someid'), TrineResource->coerce('someid'), 'Str';
     is_deeply iri(URI->new('http://foo.bar')), TrineResource->coerce('http://foo.bar'), 'CPAN URI';
-    is_deeply iri(file('t/types.t')->stringify), TrineResource->coerce(file('t/types.t')), 'Path::Class::File';
-    is_deeply iri(dir('t')->stringify), TrineResource->coerce(dir('t')), 'Path::Class::Dir';
+    is_deeply iri('t/types.t'), TrineResource->coerce(file('t/types.t')), 'Path::Class::File';
+    is_deeply iri('t'), TrineResource->coerce(dir('t')), 'Path::Class::Dir';
+    is_deeply iri('data:,123'), TrineResource->coerce(\'123'), 'ScalarRef';
+    is_deeply iri('http://foo.bar/baz'), TrineResource->coerce({
+            scheme => 'http',
+            host => 'foo.bar',
+            path => 'baz',
+        }), 'HashRef';
+}
 
+{
+    use RDF::Trine::Types qw(TrineModel);
+    diag 'TrineModel';
+    my $temp_model = TrineModel->coerce;
+    isa_ok $temp_model, 'RDF::Trine::Model', 'Coercion from undef yields model';
+    my $toby_model = TrineResource->coerce('http://tobyinkster.co.uk/');
+    warn Dumper $toby_model;
 }
