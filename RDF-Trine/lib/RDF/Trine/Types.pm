@@ -213,6 +213,12 @@ coerce (TrineResource,
     from Str, via { iri( $_ ) },
     from CPAN_URI, via { iri( $_->as_string ) },
 );
+for (File, Dir, ScalarRef, HashRef, "Path::Class::File", "Path::Class::Dir"){
+    coerce TrineResource,
+        from $_,
+            via { iri( MooseX__Types__URI__Uri->coerce( $_ ) ) };
+};
+
 
 coerce( ArrayOfTrineResources,
     # from Str, via { [ TrineResource->coerce( $_ ) ] },
@@ -251,12 +257,6 @@ coerce( TrineLiteral,
     from Str, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->string); },
     from Value, via { RDF::Trine::Node::Literal->new($_); },
 );
-
-for (File, Dir, ScalarRef, HashRef, "Path::Class::File", "Path::Class::Dir"){
-    coerce TrineResource,
-        from $_,
-            via { iri( MooseX__Types__URI__Uri->coerce( $_ ) ) };
-};
 
 1;
 
