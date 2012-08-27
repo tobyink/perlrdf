@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 20;
 use Test::Moose;
 use Data::Dumper;
 use Path::Class qw(dir file);
@@ -53,10 +53,54 @@ use_ok 'RDF::Trine::Types';
 }
 
 {
+    use RDF::Trine::Types qw(TrineNil);
+    diag "TrineNil";
+    SKIP: {
+        skip "Role refactoring from tobyink needs to be pulled", 1 unless RDF::Trine::Node::Nil->can('does');
+        isa_ok TrineNil->coerce('foo'), 'RDF::Trine::Node::Nil', 'Nil';
+    }
+}
+
+{
+    use RDF::Trine::Types qw(UriStr);
+    diag 'UriStr';
+    is 'http://google.com/', UriStr->coerce({scheme=>'http',host=>'google.com'}), 'UriStr from TrineResource from HashRef';
+}
+
+{
+    use RDF::Trine::Types qw(TrineBlankOrUndef);
+    diag 'TrineBlankOrUndef';
+    ok ! TrineBlankOrUndef->coerce(0), 'TrineBlankOrUndef on false value gives undef';
+    isa_ok TrineBlankOrUndef->coerce(1), 'RDF::Trine::Node::Blank', 'TrineBlankOrUndef on true value gives blank node';
+}
+
+{
     use RDF::Trine::Types qw(TrineModel);
     diag 'TrineModel';
     my $temp_model = TrineModel->coerce;
     isa_ok $temp_model, 'RDF::Trine::Model', 'Coercion from undef yields model';
-    my $toby_model = TrineResource->coerce('http://tobyinkster.co.uk/');
-    warn Dumper $toby_model;
+    # my $w3c_model = TrineModel->coerce('http://www.w3.org/2000/10/rdf-tests/rdfcore/amp-in-url/test001.rdf');
+    my $w3c_model = TrineModel->coerce('http://www.w3.org/2000/10/rdf-tests/rdfcore/unrecognised-xml-attributes/test001.rdf');
+    isa_ok $w3c_model, 'RDF::Trine::Model', 'Coercion from URI yields model';
+    is $w3c_model->size, 2, '2 Statement in the model';
+}
+
+{
+    use RDF::Trine::Types qw(TrineStore);
+    diag 'TrineStore';
+    my $temp_store = TrineStore->coerce;
+    isa_ok $temp_store, 'RDF::Trine::Store', 'Undef';
+    my $temp_store2 = TrineStore->coerce({storetype=>'Memory', sources=>[]});
+    isa_ok $temp_store2, 'RDF::Trine::Store', 'HashRef';
+    warn "Need to test new_with_object somehow, but that requires setting up the env";
+    warn "Need to test new somehow, but that requires setting up the env";
+}
+
+{
+    use RDF::Trine::Types qw(TrineNamespace);
+    diag 'TrineNamespace';
+    SKIP: {
+       my $ns = TrineNamespace->coerce('http://foo.bar/onto#');
+       isa_ok $ns, 'RDF::Trine::Namespace';
+    }
 }
