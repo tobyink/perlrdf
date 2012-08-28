@@ -1,4 +1,4 @@
-use Test::More tests => 20;
+use Test::More tests => 23;
 use Test::Moose;
 use Data::Dumper;
 use Path::Class qw(dir file);
@@ -11,6 +11,18 @@ use RDF::Trine qw(iri blank literal variable);
 use RDF::Trine::Namespace qw(xsd);
 
 use_ok 'RDF::Trine::Types';
+
+{
+    use RDF::Trine::Types qw(TrineNode);
+    diag 'TrineNode';
+    SKIP: {
+        skip "Role refactoring from tobyink needs to be pulled", 3 unless RDF::Trine::Node::Literal->can('does');
+        ok is_TrineNode(literal(5)), 'Literal isa TrineNode';
+        ok is_TrineNode(iri('http://foo')), 'IRI isa TrineNode';
+        ok is_TrineNode(blank), 'blank isa TrineNode';
+        # todo coercion tests
+    }
+}
 
 {
     use RDF::Trine::Types qw(TrineLiteral);
@@ -27,36 +39,36 @@ use_ok 'RDF::Trine::Types';
     for (keys %{$fixtures->{values}}) {
 
         # with RDF::Trine::literal
-        $fixtures->{literals}->{$_} = literal($fixtures->{values}->{$_}, undef, $xsd->$_);
+        $fixtures->{literals}->{$_} = literal({value => $fixtures->{values}->{$_}, datatype =>  $xsd->$_ });
 
         # with RDF::Trine::Types
         $fixtures->{coerced}->{$_} = TrineLiteral->coerce($fixtures->{values}->{$_});
     }
     for (keys %{$fixtures->{values}}) {
-        is_deeply $fixtures->{literals}->{$_}, $fixtures->{coerced}->{$_}, "TrineLiteral: $_";
+       is_deeply $fixtures->{literals}->{$_}, $fixtures->{coerced}->{$_}, "TrineLiteral: $_";
     }
 }
 
 {
     use RDF::Trine::Types qw(TrineResource);
     diag 'TrineResource';
-    is_deeply iri('someid'), TrineResource->coerce('someid'), 'Str';
-    is_deeply iri(URI->new('http://foo.bar')), TrineResource->coerce('http://foo.bar'), 'CPAN URI';
-    is_deeply iri('t/types.t'), TrineResource->coerce(file('t/types.t')), 'Path::Class::File';
-    is_deeply iri('t'), TrineResource->coerce(dir('t')), 'Path::Class::Dir';
-    is_deeply iri('data:,123'), TrineResource->coerce(\'123'), 'ScalarRef';
-    is_deeply iri('http://foo.bar/baz'), TrineResource->coerce({
+    is_deeply TrineResource->coerce('someid'), iri('someid'), 'Str';
+    is_deeply TrineResource->coerce(URI->new('http://foo.bar')), iri('http://foo.bar'), 'CPAN URI';
+    is_deeply TrineResource->coerce(file('t/types.t')), iri('t/types.t'), 'Path::Class::File';
+    is_deeply TrineResource->coerce(dir('t')), iri('t'), 'Path::Class::Dir';
+    is_deeply TrineResource->coerce(\'123'), iri('data:,123'), 'ScalarRef';
+    is_deeply TrineResource->coerce({
             scheme => 'http',
             host => 'foo.bar',
             path => 'baz',
-        }), 'HashRef';
+        }), iri('http://foo.bar/baz'), 'HashRef';
 }
 
 {
     use RDF::Trine::Types qw(TrineNil);
-    diag "TrineNil";
     SKIP: {
-        skip "Role refactoring from tobyink needs to be pulled", 1 unless RDF::Trine::Node::Nil->can('does');
+        skip "Role refactoring from tobyink needs to be pulled", 1 unless RDF::Trine::Node::Nil->can('instance');
+        diag "TrineNil";
         isa_ok TrineNil->coerce('foo'), 'RDF::Trine::Node::Nil', 'Nil';
     }
 }
@@ -89,9 +101,9 @@ use_ok 'RDF::Trine::Types';
     use RDF::Trine::Types qw(TrineStore);
     diag 'TrineStore';
     my $temp_store = TrineStore->coerce;
-    isa_ok $temp_store, 'RDF::Trine::Store', 'Undef';
+    does_ok $temp_store, 'RDF::Trine::Store::API', 'Undef';
     my $temp_store2 = TrineStore->coerce({storetype=>'Memory', sources=>[]});
-    isa_ok $temp_store2, 'RDF::Trine::Store', 'HashRef';
+    does_ok $temp_store2, 'RDF::Trine::Store::API', 'HashRef';
     warn "Need to test new_with_object somehow, but that requires setting up the env";
     warn "Need to test new somehow, but that requires setting up the env";
 }
@@ -99,8 +111,7 @@ use_ok 'RDF::Trine::Types';
 {
     use RDF::Trine::Types qw(TrineNamespace);
     diag 'TrineNamespace';
-    SKIP: {
-       my $ns = TrineNamespace->coerce('http://foo.bar/onto#');
-       isa_ok $ns, 'RDF::Trine::Namespace';
-    }
+    my $ns = TrineNamespace->coerce('http://foo.bar/onto#');
+    isa_ok $ns, 'RDF::Trine::Namespace';
 }
+exit;

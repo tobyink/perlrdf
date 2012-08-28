@@ -77,11 +77,11 @@ BEGIN {
 
 =head3 TrineNode
 
+Evertything that does RDF::Trine::Node::API::BaseNode
+
 =cut
 
-subtype TrineNode,
-    as Object,
-    where { $_->does('RDF::Trine::Node::API::BaseNode') };
+role_type TrineNode, { role => 'RDF::Trine::Node::API::BaseNode' };
 
 =head3 TrineResource 
 
@@ -155,11 +155,13 @@ class_type TrineModel, { class => 'RDF::Trine::Model' };
 
 =head3 TrineStore
 
+Everything that does RDF::Trine::Store::API
+
 No Coercion
 
 =cut
 
-class_type TrineStore, { class => 'RDF::Trine::Store' };
+role_type TrineStore, { role => 'RDF::Trine::Store::API' };
 
 =head3 TrineNamespace
 
@@ -269,14 +271,20 @@ coerce( TrineBlankOrUndef,
     from Bool, via { return undef unless $_; RDF::Trine::Node::Blank->new },
 );
 
+
 coerce (TrineResource,
     from Str, via { iri( $_ ) },
-    from CPAN_URI, via { iri( $_->as_string ) },
+    from CPAN_URI, via { RDF::Trine::Node::Resource->new( $_->as_string ) },
 );
-for (File, Dir, ScalarRef, HashRef, "Path::Class::File", "Path::Class::Dir"){
-    coerce TrineResource,
+for (File, Dir, ScalarRef, HashRef){
+    coerce( TrineResource,
         from $_,
-            via { iri( MooseX__Types__URI__Uri->coerce( $_ ) ) };
+            via {
+                my $str = MooseX__Types__URI__Uri->coerce( $_ );
+                $str = $str->as_string if ref $str;
+                RDF::Trine::Node::Resource->new($str )
+            }
+    );
 };
 
 coerce TrineNil,
@@ -307,10 +315,10 @@ coerce (UriStr,
 
 coerce( TrineModel,
     from Undef, via { RDF::Trine::Model->temporary_model },
-    from UriStr, via { 
+    from Str, via {
         my $m = TrineModel->coerce;
         my $uri = UriStr->coerce($_);
-        RDF::Trine::Parser->parse_url_into_model( $uri, $m );
+        my $ok = RDF::Trine::Parser->parse_url_into_model( $uri, $m ); #, content_cb => sub { warn Dumper @_ } );
         return $m;
     },
 );
@@ -323,13 +331,12 @@ coerce( TrineStore,
     from Defined, via { RDF::Trine::Store->new( $_ ) },
 );
 coerce( TrineLiteral,
-    from Int, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->int); },
-    from Bool, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->boolean); },
-    from Num, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->numeric); },
-    from Str, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->string); },
-    from Value, via { RDF::Trine::Node::Literal->new($_); },
+    from Int   , via { RDF::Trine::Node::Literal->new({ value=> $_  , datatype => $xsd->int     }); },
+    from Bool  , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->boolean }); },
+    from Num   , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->numeric }); },
+    from Str   , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->string  }); },
+    from Value , via { RDF::Trine::Node::Literal->new({ value => $_ }) },
 );
-
 coerce( TrineNamespace,
     from Defined, via { RDF::Trine::Namespace->new( UriStr->coerce($_) ) }
 );
