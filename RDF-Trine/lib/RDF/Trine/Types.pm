@@ -33,7 +33,6 @@ TODO
 package RDF::Trine::Types;
 use strict;
 use URI;
-use RDF::Trine qw(iri);
 use RDF::Trine::Namespace qw(xsd);
 use MooseX::Types::URI Uri => { -as => 'MooseX__Types__URI__Uri' };
 use MooseX::Types::Moose qw{:all};
@@ -280,7 +279,7 @@ coerce( TrineBlankOrUndef,
 );
 
 coerce (TrineResource,
-    from Str, via { iri( $_ ) },
+    from Str, via { RDF::Trine::Node::Resource->new( $_ ) },
     from CPAN_URI, via { RDF::Trine::Node::Resource->new( $_->as_string ) },
 );
 for (File, Dir, ScalarRef, HashRef){
