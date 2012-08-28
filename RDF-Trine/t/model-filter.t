@@ -12,7 +12,6 @@ use RDF::Trine;
 use RDF::Trine::Model::StatementFilter;
 use RDF::Trine::Namespace;
 use RDF::Trine::Store::DBI;
-use RDF::Trine::Node;
 use RDF::Trine::Pattern;
 use RDF::Trine::Statement;
 use File::Temp qw(tempfile);
@@ -71,7 +70,7 @@ my $st3q	= RDF::Trine::Statement::Quad->new( $b, $foaf->name, RDF::Trine::Node::
 		my $count	= 0;
 		while (my $st = $stream->next) {
 			my $subj	= $st->subject;
-			isa_ok( $subj, 'RDF::Trine::Node' );
+			ok( $subj->DOES('RDF::Trine::Node::API') );
 			$count++;
 		}
 		is( $count, 2, 'got two results for triple { ?p foaf:name ?name }' );
@@ -87,7 +86,7 @@ my $st3q	= RDF::Trine::Statement::Quad->new( $b, $foaf->name, RDF::Trine::Node::
 			my $count	= 0;
 			while (my $b = $stream->next) {
 				isa_ok( $b, 'HASH' );
-				isa_ok( $b->{p}, 'RDF::Trine::Node', 'node person' );
+				ok( $b->{p}->DOES('RDF::Trine::Node::API'), 'node person' );
 				isa_ok( $b->{name}, 'RDF::Trine::Node::Literal', 'literal name' );
 				like( $b->{name}->literal_value, qr/Eve|Gregory/, 'name pattern' );
 				$count++;
@@ -103,7 +102,7 @@ my $st3q	= RDF::Trine::Statement::Quad->new( $b, $foaf->name, RDF::Trine::Node::
 				my @expect	= ('Eve', 'Gregory Todd Williams');
 				while (my $b = $stream->next) {
 					isa_ok( $b, 'HASH' );
-					isa_ok( $b->{p}, 'RDF::Trine::Node', 'node person' );
+					ok( $b->{p}->DOES('RDF::Trine::Node::API'), 'node person' );
 					my $name	= shift(@expect);
 					is( $b->{name}->literal_value, $name, 'name pattern' );
 					$count++;
@@ -118,7 +117,7 @@ my $st3q	= RDF::Trine::Statement::Quad->new( $b, $foaf->name, RDF::Trine::Node::
 				my @expect	= ('Gregory Todd Williams', 'Eve');
 				while (my $b = $stream->next) {
 					isa_ok( $b, 'HASH' );
-					isa_ok( $b->{p}, 'RDF::Trine::Node', 'node person' );
+					ok( $b->{p}->DOES('RDF::Trine::Node::API'), 'node person' );
 					my $name	= shift(@expect);
 					is( $b->{name}->literal_value, $name, 'name pattern' );
 					$count++;

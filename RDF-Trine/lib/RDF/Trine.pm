@@ -102,7 +102,11 @@ if (! Log::Log4perl::initialized() ) {
 use RDF::Trine::Graph;
 use RDF::Trine::Parser;
 use RDF::Trine::Serializer;
-use RDF::Trine::Node;
+use RDF::Trine::Node::Literal;
+use RDF::Trine::Node::Resource;
+use RDF::Trine::Node::Blank;
+use RDF::Trine::Node::Variable;
+use RDF::Trine::Node::Nil;
 use RDF::Trine::Statement;
 use RDF::Trine::Namespace;
 use RDF::Trine::NamespaceMap;
@@ -111,7 +115,13 @@ use RDF::Trine::Store;
 use RDF::Trine::Error;
 use RDF::Trine::Model;
 
-
+use RDF::Trine::Store::Memory;
+use RDF::Trine::Store::Hexastore;
+use RDF::Trine::Store::DBI;
+use RDF::Trine::Store::DBI::mysql;
+use RDF::Trine::Store::DBI::SQLite;
+use RDF::Trine::Store::DBI::Pg;
+use RDF::Trine::Store::SPARQL;
 
 sub _uniq {
 	my %seen;

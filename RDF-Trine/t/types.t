@@ -1,4 +1,4 @@
-use Test::More tests => 23;
+use Test::More tests => 22;
 use Test::Moose;
 use Data::Dumper;
 use Path::Class qw(dir file);
@@ -10,7 +10,7 @@ use warnings;
 use RDF::Trine qw(iri blank literal variable);
 use RDF::Trine::Namespace qw(xsd);
 
-use_ok 'RDF::Trine::Types';
+#use_ok 'RDF::Trine::Types';
 
 {
     use RDF::Trine::Types qw(TrineNode);

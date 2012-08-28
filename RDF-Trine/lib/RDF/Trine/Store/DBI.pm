@@ -37,8 +37,16 @@ package RDF::Trine::Store::DBI;
 
 use strict;
 use warnings;
+use Moose;
+with (
+	'RDF::Trine::Store::API::QuadStore',
+	'RDF::Trine::Store::API::Readable',
+	'RDF::Trine::Store::API::Writeable',
+	'RDF::Trine::Store::API::StableBlankNodes',
+	'RDF::Trine::Store::API::Pattern',
+);
+
 no warnings 'redefine';
-use base qw(RDF::Trine::Store);
 
 use DBI;
 use DBIx::Connector;
@@ -50,16 +58,12 @@ use Encode;
 use Digest::MD5 ('md5');
 use Math::BigInt;
 use Data::Dumper;
-use RDF::Trine::Node;
 use RDF::Trine::Statement;
 use RDF::Trine::Statement::Quad;
 use RDF::Trine::Iterator;
 use Log::Log4perl;
 
 use RDF::Trine::Error;
-use RDF::Trine::Store::DBI::mysql;
-use RDF::Trine::Store::DBI::SQLite;
-use RDF::Trine::Store::DBI::Pg;
 
 ######################################################################
 
@@ -121,7 +125,11 @@ Initialize the store with a L<DBI::db> object.
 
 =cut
 
-sub new {
+has [qw(model_name dbh conn statements_table_prefix)] => (
+	is => 'bare',
+);
+
+sub BUILDARGS {
 	my $class	= shift;
 	my ($dbh, $conn);
 	
@@ -167,15 +175,18 @@ sub new {
 		}
 	}
 	
-	my $self	= bless( {
+	return {
 		model_name				=> $name,
 		dbh						=> $dbh,
 		conn					=> $conn,
 		statements_table_prefix	=> 'Statements',
 		%args
-	}, $class );
+	};
+}
+
+sub BUILD {
+	my $self	= shift;
 	$self->init();
-	return $self;
 }
 
 sub _new_with_string {
@@ -230,6 +241,8 @@ supported features.
 =cut
 
 sub supports {
+	my $self	= shift;
+	
 	return;
 }
 
@@ -263,43 +276,30 @@ sub clear_restrictions {
 	return;
 }
 
-=item C<< get_statements ($subject, $predicate, $object [, $context] ) >>
+=item C<< get_triples ($subject, $predicate, $object [, $context] ) >>
 
 Returns a stream object of all statements matching the specified subject,
 predicate and objects. Any of the arguments may be undef to match any value.
 
 =cut
 
-sub get_statements {
+sub get_triples {
 	my $self	= shift;
-	my @nodes	= @_[0..3];
+	my @nodes	= @_[0..2];
 	my $bound	= 0;
 	my %bound;
-	
-	my $use_quad	= 0;
-	if (scalar(@_) >= 4) {
-		$use_quad	= 1;
-# 		warn "count statements with quad" if ($::debug);
-		my $g	= $nodes[3];
-		if (blessed($g) and not($g->is_variable)) {
-			$bound++;
-			$bound{ 3 }	= $g;
-		}
-	}
 	
 	my ($subj, $pred, $obj, $context)	= @nodes;
 	
 	my $var		= 0;
 	my $dbh		= $self->dbh;
-	my $st		= ($use_quad)
-				? RDF::Trine::Statement::Quad->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj,$context) )
-				: RDF::Trine::Statement->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj) );
+	my $st		= RDF::Trine::Statement->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj) );
 	
 	my $l		= Log::Log4perl->get_logger("rdf.trine.store.dbi");
 	
 	my @vars	= $st->referenced_variables;
 	
-	my $semantics	= ($use_quad ? 'quad' : 'triple');
+	my $semantics	= 'triple';
 	local($self->{context_variable_count})	= 0;
 	local($self->{join_context_nodes})		= 1 if (blessed($context) and $context->is_variable);
 	my $sql		= $self->_sql_for_pattern( $st, $context, semantics => $semantics, unique => 1 );
@@ -313,7 +313,87 @@ NEXTROW:
 		return undef unless (defined $row);
 		my @triple;
 		my $temp_var_count	= 1;
-		my @nodes	= ($st->nodes)[ $use_quad ? (0..3) : (0..2) ];
+		my @nodes	= ($st->nodes)[ 0..2 ];
+		foreach my $node (@nodes) {
+			if ($node->is_variable) {
+				my $nodename	= $node->name;
+				my $uri			= $self->_column_name( $nodename, 'URI' );
+				my $name		= $self->_column_name( $nodename, 'Name' );
+				my $value		= $self->_column_name( $nodename, 'Value' );
+				my $node		= $self->_column_name( $nodename, 'Node' );
+				if ($row->{ $node } == 0) {
+					push( @triple, RDF::Trine::Node::Nil->new() );
+				} elsif (defined( my $u = $row->{ $uri })) {
+					$u	= decode('utf8', $u);
+					push( @triple, RDF::Trine::Node::Resource->new( $u ) );
+				} elsif (defined( my $n = $row->{ $name })) {
+					push( @triple, RDF::Trine::Node::Blank->new( $n ) );
+				} elsif (defined( my $v = $row->{ $value })) {
+					my @cols	= map { $self->_column_name( $nodename, $_ ) } qw(Value Language Datatype);
+					$cols[0]	= decode('utf8', $cols[0]);
+					$cols[2]	= decode('utf8', $cols[2]);
+					push( @triple, RDF::Trine::Node::Literal->new( @{ $row }{ @cols } ) );
+				} else {
+					warn "node isn't nil or a resource, blank, or literal?" . Dumper($row);
+					goto NEXTROW;
+				}
+			} else {
+				push(@triple, $node);
+			}
+		}
+		
+		my $st	= (@triple == 3)
+					? RDF::Trine::Statement->new( @triple )
+					: RDF::Trine::Statement::Quad->new( @triple );
+		return $st;
+	};
+	
+	return RDF::Trine::Iterator::Graph->new( $sub )
+}
+
+=item C<< get_quads ($subject, $predicate, $object, $graph ) >>
+
+Returns a stream object of all statements matching the specified subject,
+predicate, object, and graph. Any of the arguments may be undef to match any value.
+
+=cut
+
+sub get_quads {
+	my $self	= shift;
+	my @nodes	= @_[0..3];
+	my $bound	= 0;
+	my %bound;
+	
+	my $g	= $nodes[3];
+	if (blessed($g) and not($g->is_variable)) {
+		$bound++;
+		$bound{ 3 }	= $g;
+	}
+	
+	my ($subj, $pred, $obj, $context)	= @nodes;
+	
+	my $var		= 0;
+	my $dbh		= $self->dbh;
+	my $st		= RDF::Trine::Statement::Quad->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj,$context) );
+	
+	my $l		= Log::Log4perl->get_logger("rdf.trine.store.dbi");
+	
+	my @vars	= $st->referenced_variables;
+	
+	local($self->{context_variable_count})	= 0;
+	local($self->{join_context_nodes})		= 1 if (blessed($context) and $context->is_variable);
+	my $sql		= $self->_sql_for_pattern( $st, $context, semantics => 'quad', unique => 1 );
+	my $sth		= $dbh->prepare( $sql );
+	
+	$sth->execute();
+	
+	my $sub		= sub {
+NEXTROW:
+		my $row	= $sth->fetchrow_hashref;
+		return undef unless (defined $row);
+		my @triple;
+		my $temp_var_count	= 1;
+		my @nodes	= ($st->nodes)[ 0..3 ];
 		foreach my $node (@nodes) {
 			if ($node->is_variable) {
 				my $nodename	= $node->name;
@@ -442,7 +522,7 @@ the set of contexts of the stored quads.
 
 =cut
 
-sub get_contexts {
+sub get_graphs {
 	my $self	= shift;
 	my $dbh		= $self->dbh;
 	my $stable	= $self->statements_table;
@@ -474,6 +554,7 @@ sub get_contexts {
 	};
 	return RDF::Trine::Iterator->new( $sub );
 }
+*get_contexts = \&get_graphs;
 
 =item C<< add_statement ( $statement [, $context] ) >>
 
@@ -620,41 +701,67 @@ sub _add_node {
 	return $hash;
 }
 
-=item C<< count_statements ($subject, $predicate, $object) >>
+=item C<< count_triples ($subject, $predicate, $object) >>
 
 Returns a count of all the statements matching the specified subject,
 predicate and objects. Any of the arguments may be undef to match any value.
 
 =cut
 
-sub count_statements {
+sub count_triples {
+	my $self	= shift;
+	my @nodes	= @_[0..2];
+	my $bound	= 0;
+	my %bound;
+	
+	my ($subj, $pred, $obj, $context)	= @nodes;
+	
+	my $dbh		= $self->dbh;
+	my $var		= 0;
+	my $st		= RDF::Trine::Statement->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj) );
+	my @vars	= $st->referenced_variables;
+	
+	my $semantics	= 'triple';
+	my $countkey	= 'count-distinct';
+	my $sql		= $self->_sql_for_pattern( $st, $context, $countkey => 1, semantics => $semantics );
+#	$sql		=~ s/SELECT\b(.*?)\bFROM/SELECT COUNT(*) AS c FROM/smo;
+	my $count;
+	my $sth		= $dbh->prepare( $sql );
+	$sth->execute();
+	$sth->bind_columns( \$count );
+	$sth->fetch;
+	return $count;
+}
+
+=item C<< count_quads ($subject, $predicate, $object, $graph) >>
+
+Returns a count of all the statements matching the specified subject,
+predicate, object and graph. Any of the arguments may be undef to match any value.
+
+=cut
+
+sub count_quads {
 	my $self	= shift;
 	my @nodes	= @_[0..3];
 	my $bound	= 0;
 	my %bound;
 	
-	my $use_quad	= 0;
-	if (scalar(@_) >= 4) {
-		$use_quad	= 1;
-# 		warn "count statements with quad" if ($::debug);
-		my $g	= $nodes[3];
-		if (blessed($g) and not($g->is_variable)) {
-			$bound++;
-			$bound{ 3 }	= $g;
-		}
+# 	warn "count statements with quad" if ($::debug);
+	my $g	= $nodes[3];
+	if (blessed($g) and not($g->is_variable)) {
+		$bound++;
+		$bound{ 3 }	= $g;
 	}
 	
 	my ($subj, $pred, $obj, $context)	= @nodes;
 	
 	my $dbh		= $self->dbh;
 	my $var		= 0;
-	my $st		= ($use_quad)
-				? RDF::Trine::Statement::Quad->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj,$context) )
-				: RDF::Trine::Statement->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj) );
+	my $st		= RDF::Trine::Statement::Quad->new( map { defined($_) ? $_ : RDF::Trine::Node::Variable->new( 'n' . $var++ ) } ($subj, $pred, $obj,$context) );
 	my @vars	= $st->referenced_variables;
 	
-	my $semantics	= ($use_quad ? 'quad' : 'triple');
-	my $countkey	= ($use_quad) ? 'count' : 'count-distinct';
+	my $semantics	= 'quad';
+	my $countkey	= 'count';
 	my $sql		= $self->_sql_for_pattern( $st, $context, $countkey => 1, semantics => $semantics );
 #	$sql		=~ s/SELECT\b(.*?)\bFROM/SELECT COUNT(*) AS c FROM/smo;
 	my $count;
@@ -1061,7 +1168,7 @@ sub _sql_for_equality_expr {
 	unless ($sorted[0]->isa('RDF::Trine::Node::Variable')) {
 		throw RDF::Trine::Error::CompilationError -text => "No variable in equality test";
 	}
-	unless ($sorted[1]->isa('RDF::Trine::Node') and not($sorted[1]->isa('RDF::Trine::Node::Variable'))) {
+	unless ($sorted[1]->DOES('RDF::Trine::Node::API::RDFNode')) {
 		throw RDF::Trine::Error::CompilationError -text => "No RDFNode in equality test";
 	}
 	

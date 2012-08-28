@@ -45,7 +45,6 @@ use URI::Escape qw(uri_unescape);
 use RDF::Trine qw(literal);
 use RDF::Trine::Statement;
 use RDF::Trine::Namespace;
-use RDF::Trine::Node;
 use RDF::Trine::Error;
 
 our ($VERSION, $rdf, $xsd);
@@ -72,7 +71,7 @@ BEGIN {
 	$r_decimal				= qr'[+-]?([0-9]+\.[0-9]*|\.([0-9])+)';
 	$r_double				= qr'[+-]?([0-9]+\.[0-9]*[eE][+-]?[0-9]+|\.[0-9]+[eE][+-]?[0-9]+|[0-9]+[eE][+-]?[0-9]+)';
 	$r_integer				= qr'[+-]?[0-9]+';
-	$r_language				= qr'[a-z]+(-[a-z0-9]+)*'i;
+	$r_language				= qr'[a-z]+(?:-[a-z0-9]+)*'i;
 	$r_lcharacters			= qr'(?s)[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*';
 	$r_line					= qr'(?:[^\r\n]+[\r\n]+)(?=[^\r\n])';
 	$r_nameChar_extra		= qr'[-0-9\x{B7}\x{0300}-\x{036F}\x{203F}-\x{2040}]';
@@ -82,7 +81,7 @@ BEGIN {
 	$r_booltest				= qr'(?:true|false)\b';
 	$r_nameStartChar		= qr/[A-Za-z_\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{02FF}\x{0370}-\x{037D}\x{037F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}]/;
 	$r_nameChar				= qr/${r_nameStartChar}|[-0-9\x{b7}\x{0300}-\x{036f}\x{203F}-\x{2040}]/;
-	$r_prefixName			= qr/(?:(?!_)${r_nameStartChar})($r_nameChar)*/;
+	$r_prefixName			= qr/(?:(?!_)${r_nameStartChar})(?:$r_nameChar)*/;
 	$r_qname				= qr/(?:${r_prefixName})?:/;
 	$r_resource_test		= qr/<|$r_qname/;
 	$r_nameChar_test		= qr"(?:$r_nameStartChar|$r_nameChar_extra)";
@@ -191,10 +190,8 @@ sub _eat_re_save {
 		throw RDF::Trine::Error::ParserError -text => "No tokens";
 	}
 	
-	if ($self->{tokens} =~ m/^($thing)/) {
-		my $match	= $1;
-		substr($self->{tokens}, 0, length($match))	= '';
-		return $match;
+	if ($self->{tokens} =~ m/^$thing/) {
+		return substr($self->{tokens}, 0, $+[0], '');
 	}
 	$l->error("Expected ($thing) with remaining: $self->{tokens}");
 	throw RDF::Trine::Error::ParserError -text => "Expected: $thing";
@@ -235,17 +232,14 @@ sub _triple {
 	my $p		= shift;
 	my $o		= shift;
 	foreach my $n ($s, $p, $o) {
-		unless ($n->isa('RDF::Trine::Node')) {
+		unless ($n->DOES('RDF::Trine::Node::API')) {
 			throw RDF::Trine::Error::ParserError;
 		}
 	}
 	
 	if ($self->{canonicalize}) {
 		if ($o->isa('RDF::Trine::Node::Literal') and $o->has_datatype) {
-			my $value	= $o->literal_value;
-			my $dt		= $o->literal_datatype;
-			my $canon	= RDF::Trine::Node::Literal->canonicalize_literal_value( $value, $dt, 1 );
-			$o	= literal( $canon, undef, $dt );
+			$o = $o->canonicalize;
 		}
 	}
 	my $st	= RDF::Trine::Statement->new( $s, $p, $o );
@@ -394,9 +388,8 @@ sub _predicateObjectList {
 		push(@list, [$pred, $objt]);
 	}
 	
-	while ($self->{tokens} =~ m/^[\t\r\n #]*;/) {
-		$self->__consume_ws();
-		$self->_eat(';');
+  $self->__consume_ws();
+  while ($self->{tokens} =~ s/^;//) {
 		$self->__consume_ws();
 		if ($self->_verb_test()) { # @@
 			$pred = $self->_verb();
@@ -405,6 +398,7 @@ sub _predicateObjectList {
 			foreach my $objt ($self->_objectList()) {
 				push(@list, [$pred, $objt]);
 			}
+      $self->__consume_ws();
 		} else {
 			last
 		}

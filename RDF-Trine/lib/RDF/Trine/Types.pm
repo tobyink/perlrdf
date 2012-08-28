@@ -63,6 +63,7 @@ use MooseX::Types -declare => [
 
     'CPAN_URI',
     'UriStr',
+    'LanguageTag',
     ];
 
 our ($VERSION);
@@ -266,11 +267,17 @@ subtype UriStr, as Str;
 #-----------------------------------------------------------------------------#
 # COERCIONS
 #-----------------------------------------------------------------------------#
+=head3 LanguageTag
+
+No coercion
+
+=cut
+
+subtype LanguageTag, as Str, where { length $_ };
 
 coerce( TrineBlankOrUndef,
     from Bool, via { return undef unless $_; RDF::Trine::Node::Blank->new },
 );
-
 
 coerce (TrineResource,
     from Str, via { iri( $_ ) },

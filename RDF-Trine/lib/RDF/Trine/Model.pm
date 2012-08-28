@@ -31,7 +31,6 @@ use Log::Log4perl;
 
 use RDF::Trine::Error qw(:try);
 use RDF::Trine qw(variable);
-use RDF::Trine::Node;
 use RDF::Trine::Pattern;
 use RDF::Trine::Store;
 use RDF::Trine::Model::Dataset;
@@ -470,7 +469,7 @@ sub get_statements {
 	foreach my $i (0 .. $#_) {
 		my $n	= $_[$i];
 		next unless defined($n);	# undef is OK
-		next if (blessed($n) and $n->isa('RDF::Trine::Node'));	# node objects are OK
+		next if (blessed($n) and $n->DOES('RDF::Trine::Node::API')); # node objects are OK
 		my $pos	= $pos[$i];
 		local($Data::Dumper::Indent)	= 0;
 		my $ser	= Data::Dumper->Dump([$n], [$pos]);
@@ -549,7 +548,7 @@ sub get_pattern {
 				foreach my $i (0 .. ($order_vars-1)) {
 					my $var	= $order[$i*2];
 					my $rev	= ($order[$i*2+1] =~ /DESC/i);
-					$r	= RDF::Trine::Node::compare( $a->{$var}, $b->{$var} );
+                    $r  = RDF::Trine::Node::API::compare($a->{$var}, $b->{$var});
 					$r	*= -1 if ($rev);
 					last if ($r);
 				}

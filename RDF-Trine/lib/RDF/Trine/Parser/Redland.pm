@@ -44,7 +44,6 @@ use Log::Log4perl;
 use Scalar::Util qw(blessed reftype);
 
 use RDF::Trine qw(literal);
-use RDF::Trine::Node;
 use RDF::Trine::Statement;
 use RDF::Trine::Error qw(:try);
 
@@ -178,12 +177,7 @@ sub parse {
 			my $o = $stmt->object;
 			# basically copied from RDF::Trine::Parser::Turtle
 			if ($o->isa('RDF::Trine::Node::Literal') and $o->has_datatype) {
-				my $value	= $o->literal_value;
-				my $dt		= $o->literal_datatype;
-				my $canon	= RDF::Trine::Node::Literal->canonicalize_literal_value( $value, $dt, 1 );
-				$o	= literal( $canon, undef, $dt );
-
-				$stmt->object($o);
+				$stmt->object($o->canonicalize);
 			}
 		}
 
