@@ -77,11 +77,11 @@ BEGIN {
 
 =head3 TrineNode
 
-Evertything that does RDF::Trine::Node::API::BaseNode
+Evertything that does RDF::Trine::Node::API
 
 =cut
 
-role_type TrineNode, { role => 'RDF::Trine::Node::API::BaseNode' };
+role_type TrineNode, { role => 'RDF::Trine::Node::API'  };
 
 =head3 TrineResource 
 
