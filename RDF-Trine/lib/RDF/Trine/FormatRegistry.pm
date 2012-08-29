@@ -160,6 +160,26 @@ sub known_media_types_with_serializers {
 		$self->all_formats;
 }
 
+sub http_negotiate
+{
+	my ($self, $opts) = @_;
+	my @formats =
+		grep { defined $_->serializers->[0] }
+		$self->find_format_by_capabilities($opts);
+	my @http;
+	foreach my $fmt (@formats) {
+		my $qs = 0.9;
+		$qs = 1.0 if $fmt eq 'SPARQL Results in XML';
+		$qs = 1.0 if $fmt eq 'RDF/XML';
+		foreach my $mt ($fmt->all_media_types) {
+			my $mtqs = $qs;
+			$mtqs = 0.1 if $mt =~ m{/x-};
+			push @http => [ $fmt->name, $mtqs, $mt ];
+		}
+	}
+	return \@http;
+}
+
 sub _build_formats {
 	my $self = shift;
 	
