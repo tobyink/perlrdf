@@ -86,7 +86,7 @@ sub negotiate {
 		$$self   = $data . $$self;
 	}
 	sub string {
-		shift;
+		${ +shift };
 	}
 }
 

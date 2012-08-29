@@ -78,17 +78,17 @@ sub graph_iterator_to_string
 sub iterator_to_file
 {
 	my ($self, $iter, $fh, $base) = @_;
-	$iter->is_graph
-		? $self->graph_iterator_to_file( $iter => $fh, $base )
-		: $self->bindings_iterator_to_file( $iter => $fh, $base )
+	$iter->is_bindings
+		? $self->bindings_iterator_to_file( $iter => $fh, $base )
+		: $self->graph_iterator_to_file( $iter => $fh, $base )
 }
 
 sub iterator_to_string
 {
 	my ($self, $iter, $base) = @_;
-	$iter->is_graph
-		? $self->graph_iterator_to_string( $iter, $base )
-		: $self->bindings_iterator_to_string( $iter, $base )
+	$iter->is_bindings
+		? $self->bindings_iterator_to_string( $iter, $base )
+		: $self->graph_iterator_to_string( $iter, $base )
 }
 
 # back-compat
