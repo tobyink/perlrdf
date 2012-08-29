@@ -111,12 +111,19 @@ sub find_format_by_media_type {
 	return(wantarray ? @f : $f[0]);
 }
 
+sub __canon
+{
+	my $_ = lc shift;
+	s/[^a-z0-9]//g;
+	$_;
+}
+
 sub find_format_by_name {
 	my ($self, $n, $opts) = @_;
 	$opts //= {};
 	my @f = $self->filter_formats(sub {
 		my $f = $_;
-		(grep { $n eq $_ } @{ $f->names }) and $f->matches_opts($opts)
+		(grep { my $x=$_; __canon($n) eq __canon($x) } @{ $f->names }) and $f->matches_opts($opts)
 	});
 	return unless @f;
 	return(wantarray ? @f : $f[0]);
@@ -262,4 +269,124 @@ sub _build_formats {
 	]
 }
 
+__PACKAGE__->meta->make_immutable;
 1;
+
+__END__
+
+=head1 NAME
+
+RDF::Trine::FormatRegistry - file formats that RDF::Trine knows about
+
+=head DESCRIPTION
+
+RDF::Trine::FormatRegistry keeps a list of file formats that RDF::Trine is
+aware of. A registry is an object, and you can make your own registry like
+this:
+
+  my $reg = RDF::Trine::FormatRegistry->new(formats => \@list);
+
+... but most places in Trine just assume the use of the default format
+registry object, which can be accessed like this:
+
+  my $reg = RDF::Trine::FormatRegistry->instance;
+
+When parser and serializer modules are loaded, they will attempt to
+register themselves with the format registry like this:
+
+  use RDF::Trine::FormatRegistry -format => {
+    format_uri  => 'http://www.example.com/monkey-rdf',
+    names       => ['Monkey RDF'],
+    media_types => [qw(text/x-monkey)],
+  };
+  
+  package My::Parser::Monkey;
+  use constant media_types => [qw(text/x-monkey)];
+  use RDF::Trine::FormatRegistry -register_parser;
+  
+  package My::Serializer::Monkey;
+  use constant media_types => [qw(text/x-monkey)];
+  use RDF::Trine::FormatRegistry -register_serializer;
+
+You can then find parsers and serializers from the registry:
+
+  my $p = $reg->find_format_by_media_type('text/x-monkey')->parsers->[0];
+
+The factory classes L<RDF::Trine::Parser> and L<RDF::Trine::Serializer> provide
+some convenient shortcuts for this.
+
+=head2 Class Attributes
+
+=over
+
+=item C<< instance >>
+
+The default instance.
+
+=back
+
+=head2 Attributes
+
+=over
+
+=item C<< formats >>
+
+The list of known formats, as an arrayref.
+
+=back
+
+=head2 Methods
+
+=over
+
+=item C<< all_formats >>
+
+The list of known formats, as a list.
+
+=item C<< filter_formats($coderef)>>
+
+Grep the list of known formats.
+
+=item C<< register_format($format) >>
+
+Registers an L<RDF::Trine::Format> unless it already exists.
+
+=item C<< find_format($search_key, \%features) >>
+
+Searches for a format matching the search key which may be a format URI,
+a media type or a format name. The features hash keys allow you to indicate
+which format features you consider necessary. Possible keys are:
+
+=over
+
+=item * triples
+
+=item * quads
+
+=item * result_sets
+
+=item * booleans
+
+=back
+
+=item C<< find_format_by_uri($uri, \%features) >>
+
+Searches for a format by format URI.
+
+=item C<< find_format_by_media_type($mt, \%features) >>
+
+Searches for a format by media (MIME) type.
+
+=item C<< find_format_by_media_type($name, \%features) >>
+
+Searches for a format by name.
+
+=item C<< find_format_by_capabilities(\%features) >>
+
+Searches for a format by language features alone.
+
+=item C<< known_media_types >>
+
+Returns a list of all known media types, suitable for an HTTP Accept header.
+
+=back
