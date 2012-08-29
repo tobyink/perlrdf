@@ -18,7 +18,7 @@
 		
 		has $p->name => (
 			is       => 'rw',       # :-(
-			isa      => TrineNode,
+			does     => 'RDF::Trine::Node::API',
 			required => $p->require,
 		);
 	}
