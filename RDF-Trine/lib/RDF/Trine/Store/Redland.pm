@@ -303,7 +303,7 @@ sub _model {
 	return $self->{model};
 }
 
-sub _cast_to_redland {
+sub _cast_to_redland ($) {
 	my $node	= shift;
 	return undef unless (blessed($node));
 	if ($node->DOES('RDF::Trine::Statement::API')) {
