@@ -102,8 +102,8 @@ sub register_parser {
 
 sub register_serializer {
 	my ($self, $p) = @_;
-	return if grep { $_ eq $p } @{ $self->serializer };
-	push @{ $self->serializer }, $p;
+	return if grep { $_ eq $p } @{ $self->serializers };
+	push @{ $self->serializers }, $p;
 }
 
 1;

@@ -31,7 +31,8 @@ sub import {
 			}
 		}
 		confess "No known formats with media types: "
-			. join(q[ ], @{ $parser->media_types });
+			. join(q[ ], @{ $parser->media_types })
+			unless $format;
 		$format->register_parser($parser);
 	}
 	
@@ -47,7 +48,8 @@ sub import {
 			}
 		}
 		confess "No known formats with media types: "
-			. join(q[ ], @{ $serializer->media_types });
+			. join(q[ ], @{ $serializer->media_types })
+			unless $format;
 		$format->register_serializer($serializer);
 	}
 }
@@ -154,7 +156,7 @@ sub _build_formats {
 		$fc->new(
 			names         => [qw( N-Triples NTriples )],
 			format_uri    => 'http://www.w3.org/ns/formats/N-Triples',
-			media_types   => [qw( text/plain )],
+			media_types   => [qw( text/plain text/x-ntriples )],
 			extensions    => [qw( nt )],
 			triples       => 1,
 		),
@@ -191,14 +193,6 @@ sub _build_formats {
 		$fc->new(
 			names         => [qw( N-Quads NQuads )],
 			format_uri    => 'http://sw.deri.org/2008/07/n-quads/#n-quads',
-			media_types   => [qw( text/x-nquads )],
-			extensions    => [qw( nq )],
-			triples       => 1,
-			quads         => 1,
-		),
-		$fc->new(
-			names         => ['OWL Functional Syntax', qw( OwlFn )],
-			format_uri    => 'http://www.w3.org/ns/formats/OWL_Functional',
 			media_types   => [qw( text/x-nquads )],
 			extensions    => [qw( nq )],
 			triples       => 1,
