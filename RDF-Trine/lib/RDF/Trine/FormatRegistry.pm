@@ -6,6 +6,52 @@ use MooseX::Types::Moose qw(Str ArrayRef Any Bool ClassName Object);
 use RDF::Trine::Types qw(UriStr TrineFormat);
 use namespace::autoclean;
 
+use RDF::Trine::Format;
+
+sub import {
+	my ($class, $cmd, @args) = @_;
+	
+	my $registry = $class->instance;
+	
+	if ($cmd eq '-format') {
+		$registry->register_format(
+			'RDF::Trine::Format'->new(@args),
+		);
+	}
+	
+	if ($cmd eq '-register_parser') {
+		my $parser = caller;
+		my $format;
+		MT: for my $mt (@{ $parser->media_types }) {
+			FMT: for my $fmt (@{ $registry->formats }) {
+				if ($fmt->handles_media_type($mt)) {
+					$format = $fmt;
+					last MT;
+				}
+			}
+		}
+		confess "No known formats with media types: "
+			. join(q[ ], @{ $parser->media_types });
+		$format->register_parser($parser);
+	}
+	
+	if ($cmd eq '-register_serializer') {
+		my $serializer = caller;
+		my $format;
+		MT: for my $mt (@{ $serializer->media_types }) {
+			FMT: for my $fmt (@{ $registry->formats }) {
+				if ($fmt->handles_media_type($mt)) {
+					$format = $fmt;
+					last MT;
+				}
+			}
+		}
+		confess "No known formats with media types: "
+			. join(q[ ], @{ $serializer->media_types });
+		$format->register_serializer($serializer);
+	}
+}
+
 class_has instance => (
 	is         => 'ro',
 	isa        => Object,
