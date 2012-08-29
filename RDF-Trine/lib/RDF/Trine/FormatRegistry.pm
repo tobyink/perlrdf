@@ -277,7 +277,7 @@ sub _build_formats {
 		$fc->new(
 			names         => ['SPARQL Results in JSON'],
 			format_uri    => 'http://www.w3.org/ns/formats/SPARQL_Results_JSON',
-			media_types   => [qw( application/sparql-results+json )],
+			media_types   => [qw( application/sparql-results+json application/x-sparql-results+json )],
 			extensions    => [qw( srj )],
 			triples       => 1,
 			quads         => 1,
