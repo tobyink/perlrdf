@@ -43,7 +43,7 @@ $model->add_statement( $_ ) for ($st0, $st1, $st2, $st3);
 		'<http://kasei.us/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Document> _:graph2 .',
 	) };
 	
-	is_deeply( \%got, $expect, 'serialize_model_to_file' );
+	is_deeply( \%got, $expect, 'serialize_model_to_file' ) or note explain(\%got);
 }
 
 {
@@ -66,7 +66,7 @@ $model->add_statement( $_ ) for ($st0, $st1, $st2, $st3);
 		'<http://kasei.us/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Document> .',
 	};
 	
-	is_deeply( \%got, $expect, 'serialize_iterator_to_file with triple-based iterator' );
+	is_deeply( \%got, $expect, 'serialize_iterator_to_file with triple-based iterator' ) or note explain(\%got);
 }
 
 {
@@ -89,7 +89,7 @@ $model->add_statement( $_ ) for ($st0, $st1, $st2, $st3);
 		'<http://kasei.us/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Document> _:graph2 .',
 	};
 	
-	is_deeply( \%got, $expect, 'serialize_iterator_to_file with quad-based iterator' );
+	is_deeply( \%got, $expect, 'serialize_iterator_to_file with quad-based iterator' ) or note explain(\%got);
 }
 
 {
@@ -101,5 +101,5 @@ $model->add_statement( $_ ) for ($st0, $st1, $st2, $st3);
 		'_:greg <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> .',
 		'<http://kasei.us/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Document> _:graph2 .',
 	};
-	is_deeply( \%got, $expect, 'serialize_iterator_to_string with quad-based iterator' );
+	is_deeply( \%got, $expect, 'serialize_iterator_to_string with quad-based iterator' ) or note explain(\%got);
 }
