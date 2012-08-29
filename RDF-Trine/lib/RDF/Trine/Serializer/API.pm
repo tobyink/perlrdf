@@ -197,4 +197,10 @@ Note that the order of arguments is reversed from the above methods.
 
 =back
 
+=head1 AUTHOR
+
+Konstantin Baierer C<< kba@cpan.org >>
+
+Toby Inkster C<< tobyink@cpan.org >>
+
 =cut
