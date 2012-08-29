@@ -387,34 +387,9 @@ Returns a JSON serialization of the stream data.
 =cut
 
 sub as_json {
-	my $self			= shift;
-	my $max_result_size	= shift || 0;
-	my $width			= $self->bindings_count;
-# 	my $bridge			= $self->bridge;
-	
-	my @variables;
-	for (my $i=0; $i < $width; $i++) {
-		my $name	= $self->binding_name($i);
-		push(@variables, $name) if $name;
-	}
-	
-	my $count	= 0;
-	my @sorted	= $self->sorted_by;
-	my $order	= scalar(@sorted) ? JSON::true : JSON::false;
-	my $dist	= $self->_args->{distinct} ? JSON::true : JSON::false;
-	
-	my $data	= {
-					head	=> { vars => \@variables },
-					results	=> { ordered => $order, distinct => $dist, bindings => [] },
-				};
-	my @bindings;
-	while (my $row = $self->next) {
-		my %row	= map { format_node_json($row->{$_}, $_) } (keys %$row);
-		push(@{ $data->{results}{bindings} }, \%row);
-		last if ($max_result_size and ++$count >= $max_result_size);
-	}
-	
-	return to_json( $data );
+	my $self = shift;
+	require RDF::Trine::Serializer::SparqlJSON;
+	'RDF::Trine::Serializer::SparqlJSON'->new->iterator_to_string($self)
 }
 
 =item C<as_xml ( $max_size )>
