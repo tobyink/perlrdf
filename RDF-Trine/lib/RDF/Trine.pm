@@ -100,7 +100,7 @@ if (! Log::Log4perl::initialized() ) {
 }
 
 use RDF::Trine::Graph;
-use RDF::Trine::Parser;
+#use RDF::Trine::Parser;
 use RDF::Trine::Serializer;
 use RDF::Trine::Node::Literal;
 use RDF::Trine::Node::Resource;

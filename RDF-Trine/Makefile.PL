@@ -44,6 +44,9 @@ requires            'MooseX::Types'             => 0;
 requires            'MooseX::Types::URI'        => 0;
 requires            'MooseX::Types::Moose'      => 0;
 requires            'MooseX::Types::Path::Class'=> 0;
+requires            'IO::Detect'                => 0.004;
+requires            'TryCatch'                  => 1.003000;
+requires            'IO::String'                => 0;
 
 recommends			'XML::LibXML'				=> 1.70;
 
