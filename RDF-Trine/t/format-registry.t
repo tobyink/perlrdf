@@ -1,4 +1,4 @@
-use Test::More tests=>34;
+use Test::More tests=>35;
 use ok RDF::Trine::FormatRegistry;
 use Data::Dumper;
 use ok RDF::Trine::Parser;
@@ -29,15 +29,15 @@ use ok RDF::Trine::Serializer;
         is $parser_found, $parser_expected, "$type => $parser_found";
     }
 
-
     diag "serializers";
-    is scalar($reg->known_media_types_with_serializers), 5, '5 media types with serializers';
+    is scalar($reg->known_media_types_with_serializers), 6, '6 media types with serializers';
     my %serializers_expected = (
         'text/plain' => 'RDF::Trine::Serializer::NTriples',
         'text/x-ntriples' => 'RDF::Trine::Serializer::NTriples',
         'application/x-rdf+json' => 'RDF::Trine::Serializer::RDFJSON',
         'application/json' => 'RDF::Trine::Serializer::RDFJSON',
         'text/x-nquads' => 'RDF::Trine::Serializer::NQuads',
+        'text/tab-separated-values' => 'RDF::Trine::Serializer::TSV',
     );
     while (my ($type,$serializer_expected) = each %serializers_expected) {
         my $serializer_found = $reg->find_format_by_media_type( $type )->serializers->[0];
