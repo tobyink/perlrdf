@@ -35,9 +35,7 @@ our $VERSION; BEGIN { $VERSION = '1.000'; }
 use Moose;
 
 use constant media_types => [
-    'application/x-turtle',
-    'application/turtle',
-    'text/turtle',
+    'application/x-trig',
 ];
 
 use RDF::Trine::FormatRegistry '-register_parser';

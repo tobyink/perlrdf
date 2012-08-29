@@ -3,8 +3,20 @@ use Moose::Role;
 use Scalar::Util qw(blessed reftype);
 use IO::String;
 
+our ($VERSION, $HAVE_REDLAND_PARSER);
+
+BEGIN {
+	$VERSION	= '1.000';
+	unless ($ENV{RDFTRINE_NO_REDLAND}) {
+		eval "use RDF::Redland 1.000701;";
+		unless ($@) {
+			$HAVE_REDLAND_PARSER	= 1;
+		}
+	}
+}
+
 requires (
-    '_build_redland_parser',
+    'redland_parser_format',
 );
 
 has redland_parser => (
@@ -13,6 +25,10 @@ has redland_parser => (
     lazy => 1,
     builder => '_build_redland_parser',
 );
+
+sub _build_redland_parser {
+    return RDF::Redland::Parser->new('turtle');
+}
 
 sub parse {
 	my $self	= shift;
