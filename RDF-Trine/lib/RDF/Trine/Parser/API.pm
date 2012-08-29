@@ -8,7 +8,7 @@ with (
 requires (
     '_parse_graph',
     '_parse_bindings',
-    'media_type',
+    'media_types',
 );
 
 1;
@@ -25,17 +25,19 @@ Every Parser needs to implement
 
 =over 4
 
-=item media_type
+=item media_types
 
 A constant array of supported media types, used for linking parsers to formats
 
-=item _parse_bindings
+=item _parse_bindings( $fh, $handler, $base )
 
-Takes a filehandle and parses it into bindings iterator
+Takes filehandle $fh and parses from it to handler $handler using a tabular
+bindings structure, optionally using base URI $base.
 
-=item _parse_graph
+=item _parse_graph( $fh, $handler, $base )
 
-Takes a filehandle and parses it into a graph iterator
+Takes filehandle $fh and parses from it to handler $handler using a graph
+structure, optionally using base URI $base.
 
 =back
 

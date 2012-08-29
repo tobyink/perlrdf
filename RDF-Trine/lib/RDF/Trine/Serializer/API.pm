@@ -25,17 +25,17 @@ Every Serializer needs to implement
 
 =over 4
 
-=item media_type
+=item media_types
 
 A constant array of supported media types, used for linking serializers to formats
 
-=item _serialize_bindings
+=item _serialize_bindings( $iter, $fh, $base )
 
-Takes a binding iterator and serializes it to a filehandle
+Takes binding iterator $iter and serializes it to a filehandle $fh, optionally using the base URI $base.
 
-=item _serialize_graph
+=item _serialize_graph( $iter, $fh, $base )
 
-Takes a graph iterator and serializes it to a filehandle
+Takes graph iterator $iter and serializes it to filehandle $fh, optionally using the base URI $base.
 
 =back
 
