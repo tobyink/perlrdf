@@ -29,10 +29,10 @@ sub _serialize_graph {
 sub _serialize_bindings {
 	my ($self, $iter, $fh) = @_;
 	my $header;
-	while (my $row = $iter->next) {
-		$header ||= print {$fh} join("\t", $row->binding_names), "\n"
+	while ($iter->next) {
+		$header ||= print {$fh} join("\t", $iter->binding_names), "\n"
 			if $self->output_headers;
-		print {$fh} join("\t", map { $_->as_ntriples } $row->binding_values), "\n";
+		print {$fh} join("\t", map { $_->as_ntriples } $iter->binding_values), "\n";
 	}
 }
 
