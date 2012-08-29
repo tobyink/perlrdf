@@ -13,7 +13,7 @@ use ok RDF::Trine::Serializer;
     is scalar($reg->known_media_types), 19, '19 media types';
 
     diag "parsers";
-    is scalar($reg->known_media_types_with_parsers), 8, '8 media types with parsers';
+    is scalar($reg->known_media_types_with_parsers), 11, '11 media types with parsers';
     my %parsers_expected = (
         'text/turtle'            => 'RDF::Trine::Parser::Turtle',
         'application/turtle'     => 'RDF::Trine::Parser::Turtle',
@@ -25,12 +25,12 @@ use ok RDF::Trine::Serializer;
         'application/json'       => 'RDF::Trine::Parser::RDFJSON',
     );
     my %parsers_nr_expected = (
-        'text/turtle'            => 3,
-        'application/turtle'     => 3,
-        'application/x-turtle'   => 3,
-        'text/plain'             => 1,
-        'text/x-ntriples'        => 1,
-        'application/xhtml+xml'  => 1,
+        'text/turtle'            => 2,
+        'application/turtle'     => 2,
+        'application/x-turtle'   => 2,
+        'text/plain'             => 2,
+        'text/x-ntriples'        => 2,
+        'application/xhtml+xml'  => 2,
         'application/x-rdf+json' => 1,
         'application/json'       => 1,
     );
