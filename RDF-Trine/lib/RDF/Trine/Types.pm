@@ -47,6 +47,7 @@ use MooseX::Types -declare => [
 
     'TrineStore',
     'TrineModel',
+    'TrineFormat',
 
     'ArrayOfTrineResources',
     'ArrayOfTrineNodes',
@@ -124,6 +125,22 @@ No Coercion
 =cut
 
 class_type TrineStore, { class => 'RDF::Trine::Store' };
+
+
+=head3 TrineFormat
+
+Coercians from Str is defined:
+
+ my $parser     = TrineFormat->coerce('application/rdf+xml')->parsers->[0];
+ my $serializer = TrineFormat->coerce('Turtle')->serializers->[0];
+
+=cut
+
+class_type TrineFormat, { class => 'RDF::Trine::Format' };
+
+coerce TrineFormat,
+    from Str,
+    via  { 'RDF::Trine::FormatRegistry'->instance->find_format($_) };
 
 =head3 CPAN_URI
 
