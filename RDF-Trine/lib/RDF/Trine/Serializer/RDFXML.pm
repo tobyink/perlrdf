@@ -1,73 +1,29 @@
-# RDF::Trine::Serializer::RDFXML
-# -----------------------------------------------------------------------------
-
-=head1 NAME
-
-RDF::Trine::Serializer::RDFXML - RDF/XML Serializer
-
-=head1 VERSION
-
-This document describes RDF::Trine::Serializer::RDFXML version 1.000
-
-=head1 SYNOPSIS
-
- use RDF::Trine::Serializer::RDFXML;
- my $serializer	= RDF::Trine::Serializer::RDFXML->new( namespaces => { ex => 'http://example/' } );
- print $serializer->serialize_model_to_string($model);
-
-=head1 DESCRIPTION
-
-The RDF::Trine::Serializer::Turtle class provides an API for serializing RDF
-graphs to the RDF/XML syntax.
-
-=head1 METHODS
-
-Beyond the methods documented below, this class inherits methods from the
-L<RDF::Trine::Serializer> class.
-
-=over 4
-
-=cut
-
 package RDF::Trine::Serializer::RDFXML;
 
-use strict;
-use warnings;
-use base qw(RDF::Trine::Serializer);
+use constant media_types => [qw( application/rdf+xml )];
+use RDF::Trine;
+use RDF::Trine::FormatRegistry -register_serializer;
+
+use Moose;
+with qw(
+	RDF::Trine::Serializer::API
+);
+
+has [qw/ namespaces scoped_namespaces base_uri /] => (is => 'rw');
 
 use URI;
 use Carp;
 use Data::Dumper;
 use Scalar::Util qw(blessed);
+use TryCatch;
 
 use RDF::Trine;
 use RDF::Trine::Statement::Triple;
-use RDF::Trine::Error qw(:try);
 
-######################################################################
-
-our ($VERSION);
-BEGIN {
-	$VERSION	= '1.000';
-	$RDF::Trine::Serializer::serializer_names{ 'rdfxml' }	= __PACKAGE__;
-	$RDF::Trine::Serializer::format_uris{ 'http://www.w3.org/ns/formats/RDF_XML' }	= __PACKAGE__;
-	foreach my $type (qw(application/rdf+xml)) {
-		$RDF::Trine::Serializer::media_types{ $type }	= __PACKAGE__;
-	}
-}
-
-######################################################################
-
-=item C<< new ( namespaces => \%namespaces, base_uri => $baseuri ) >>
-
-Returns a new RDF/XML serializer object.
-
-=cut
-
-sub new {
+sub BUILDARGS {
 	my $class	= shift;
 	my %args	= @_;
-	my $self = bless( { namespaces => { 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' => 'rdf' } }, $class);
+	my $self = +{ namespaces => { 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' => 'rdf' } };
 	if (my $ns = $args{namespaces}) {
 		my %ns		= %{ $ns };
 		my %nsmap;
@@ -91,49 +47,24 @@ sub new {
 	return $self;
 }
 
-=item C<< serialize_model_to_file ( $fh, $model ) >>
-
-Serializes the C<$model> to RDF/XML, printing the results to the supplied
-filehandle C<<$fh>>.
-
-=cut
-
-sub serialize_model_to_file {
-	my $self	= shift;
-	my $fh		= shift;
-	my $model	= shift;
-	my $iter	= $model->as_stream;
-	
-	$self->serialize_iterator_to_file( $fh, $iter );
-	return 1;
+sub _serialize_bindings {
+	confess "cannot handle bindings";
 }
 
-=item C<< serialize_model_to_string ( $model ) >>
-
-Serializes the C<$model> to RDF/XML, returning the result as a string.
-
-=cut
-
-=item C<< serialize_iterator_to_file ( $file, $iter ) >>
-
-Serializes the iterator to RDF/XML, printing the results to the supplied
-filehandle C<<$fh>>.
-
-=cut
-
-sub serialize_iterator_to_file {
-	my $self	= shift;
-	my $fh		= shift;
-	my $iter	= shift;
+sub _serialize_graph {
+	my ($self, $iter, $fh) = @_;
 	
-	my $ns		= $self->_top_xmlns();
-	my $base_uri	= '';
-	if ($self->{base_uri}) {
-		$base_uri = "xml:base=\"$self->{base_uri}\" ";
+	my $ns = $self->_top_xmlns();
+	my $base_uri = '';
+	if ($self->base_uri) {
+		$base_uri = "xml:base=\"".$self->base_uri."\" ";
 	}
-	print {$fh} qq[<?xml version="1.0" encoding="utf-8"?>\n<rdf:RDF ${base_uri}xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"$ns>\n];
+	printf {$fh}
+		qq[<?xml version="1.0" encoding="utf-8"?>\n<rdf:RDF %sxmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"%s>\n],
+		$base_uri,
+		$ns;
 	
-	my $st			= $iter->next;
+	my $st = $iter->next;
 	my @statements;
 	push(@statements, $st) if blessed($st);
 	while (@statements) {
@@ -176,7 +107,7 @@ sub _statements_same_subject_as_string {
 	}
 	
 	my $counter	= 1;
-	my %namespaces	= %{ $self->{namespaces} };
+	my %namespaces	= %{ $self->namespaces };
 	my $string	= '';
 	foreach my $st (@statements) {
 		my (undef, $p, $o)	= $st->nodes;
@@ -184,9 +115,11 @@ sub _statements_same_subject_as_string {
 		my ($ns, $ln);
 		try {
 			($ns,$ln)	= $p->qname;
-		} catch RDF::Trine::Error with {
+		} catch ($e) {
 			my $uri	= $p->uri_value;
-			throw RDF::Trine::Error::SerializationError -text => "Can't turn predicate $uri into a QName.";
+			RDF::Trine::Exception->throw(
+				message => "Can't turn predicate $uri into a QName.",
+			);
 		};
 		$used_namespaces{ $ns }++;
 		unless (exists $namespaces{ $ns }) {
@@ -194,7 +127,7 @@ sub _statements_same_subject_as_string {
 		}
 		my $prefix	= $namespaces{ $ns };
 		my $nsdecl	= '';
-		if ($self->{scoped_namespaces}) {
+		if ($self->scoped_namespaces) {
 			$nsdecl	= qq[ xmlns:$prefix="$ns"];
 		}
 		if ($o->isa('RDF::Trine::Node::Literal')) {
@@ -237,7 +170,7 @@ sub _statements_same_subject_as_string {
 	$string	.= qq[</rdf:Description>\n];
 	
 	# rdf namespace is already defined in the <rdf:RDF> tag, so ignore it here
-	my %seen	= %{ $self->{namespaces} };
+	my %seen	= %{ $self->namespaces };
 	my @ns;
 	foreach my $uri (sort { $namespaces{$a} cmp $namespaces{$b} } grep { not($seen{$_}) } (keys %namespaces)) {
 		my $ns	= $namespaces{$uri};
@@ -266,8 +199,8 @@ sub _serialize_bounded_description {
 	
 	my $ns		= $self->_top_xmlns();
 	my $base_uri	= '';
-	if ($self->{base_uri}) {
-		$base_uri = "xml:base=\"$self->{base_uri}\" ";
+	if ($self->base_uri) {
+		$base_uri = "xml:base=\"".$self->base_uri."\" ";
 	}
 	my $string	= qq[<?xml version="1.0" encoding="utf-8"?>\n<rdf:RDF $base_uri$ns>\n];
 	$string		.= $self->__serialize_bounded_description( $model, $node, $seen );
@@ -301,9 +234,9 @@ sub __serialize_bounded_description {
 
 sub _top_xmlns {
 	my $self	= shift;
-	my $namespaces	= $self->{namespaces};
+	my $namespaces	= $self->namespaces;
 	my @keys		= sort { $namespaces->{$a} cmp $namespaces->{$b} } keys %$namespaces;
-	return '' if ($self->{scoped_namespaces});
+	return '' if ($self->scoped_namespaces);
 	
 	my @ns;
 	foreach my $v (@keys) {
@@ -322,29 +255,5 @@ sub _top_xmlns {
 	return $ns;
 }
 
+__PACKAGE__->meta->make_immutable;
 1;
-
-__END__
-
-=back
-
-=head1 BUGS
-
-Please report any bugs or feature requests to through the GitHub web interface
-at L<https://github.com/kasei/perlrdf/issues>.
-
-=head1 SEE ALSO
-
-L<http://www.w3.org/TR/rdf-syntax-grammar/>
-
-=head1 AUTHOR
-
-Gregory Todd Williams  C<< <gwilliams@cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2006-2012 Gregory Todd Williams. This
-program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
-
-=cut
