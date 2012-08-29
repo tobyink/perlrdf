@@ -139,7 +139,25 @@ sub find_format_by_capabilities {
 
 sub known_media_types {
 	my $self = shift;
-	map { @{ $_->media_types } } $self->all_formats;
+	return
+		map  { @{ $_->media_types } }
+		$self->all_formats;
+}
+
+sub known_media_types_with_parsers {
+	my $self = shift;
+	return
+		map  { @{ $_->media_types } }
+		grep { defined $_->parsers->[0] }
+		$self->all_formats;
+}
+
+sub known_media_types_with_serializers {
+	my $self = shift;
+	return
+		map  { @{ $_->media_types } }
+		grep { defined $_->serializers->[0] }
+		$self->all_formats;
 }
 
 sub _build_formats {
@@ -388,5 +406,13 @@ Searches for a format by language features alone.
 =item C<< known_media_types >>
 
 Returns a list of all known media types, suitable for an HTTP Accept header.
+
+=item C<< known_media_types_with_parsers >>
+
+Narrows down the media type list to only those that can be parsed.
+
+=item C<< known_media_types_with_serializers >>
+
+Narrows down the media type list to only those that can be serialized.
 
 =back
