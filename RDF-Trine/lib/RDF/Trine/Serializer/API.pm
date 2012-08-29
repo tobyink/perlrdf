@@ -1,6 +1,10 @@
 package RDF::Trine::Serializer::API;
 use Moose::Role;
 
+with (
+    'RDF::Trine::Iterator::API::Converter'
+);
+
 requires (
     '_serialize_graph',
     '_serialize_bindings',

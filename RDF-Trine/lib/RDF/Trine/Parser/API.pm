@@ -1,6 +1,10 @@
 package RDF::Trine::Parser::API;
 use Moose::Role;
 
+with (
+    'RDF::Trine::Iterator::API::Converter'
+);
+
 requires (
     '_parse_graph',
     '_parse_bindings',
