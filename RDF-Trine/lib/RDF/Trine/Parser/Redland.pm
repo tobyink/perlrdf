@@ -35,17 +35,16 @@ package RDF::Trine::Parser::Redland;
 
 use strict;
 use warnings;
-
-use base qw(RDF::Trine::Parser);
+no warnings 'redefine';
 
 use Carp;
 use Data::Dumper;
 use Log::Log4perl;
 use Scalar::Util qw(blessed reftype);
 
-use RDF::Trine qw(literal);
-use RDF::Trine::Statement::Triple;
-use RDF::Trine::Error qw(:try);
+#use RDF::Trine qw(literal);
+#use RDF::Trine::Statement::Triple;
+#use RDF::Trine::Error qw(:try);
 
 ######################################################################
 
@@ -85,15 +84,15 @@ BEGIN {
 	);
 	
 	$VERSION	= '1.000';
-	for my $format (keys %FORMATS) {
-		$RDF::Trine::Parser::parser_names{$format} = $FORMATS{$format}[0];
-		$RDF::Trine::Parser::format_uris{ $FORMATS{$format}[1] } = $FORMATS{$format}[0]
-			if defined $FORMATS{$format}[1];
-		map { $RDF::Trine::Parser::media_types{$_} = $FORMATS{$format}[0] }
-			(@{$FORMATS{$format}[2]});
-		map { $RDF::Trine::Parser::file_extensions{$_} = $FORMATS{$format}[0] }
-			(@{$FORMATS{$format}[3]});
-	}
+#	for my $format (keys %FORMATS) {
+#		$RDF::Trine::Parser::parser_names{$format} = $FORMATS{$format}[0];
+#		$RDF::Trine::Parser::format_uris{ $FORMATS{$format}[1] } = $FORMATS{$format}[0]
+#			if defined $FORMATS{$format}[1];
+#		map { $RDF::Trine::Parser::media_types{$_} = $FORMATS{$format}[0] }
+#			(@{$FORMATS{$format}[2]});
+#		map { $RDF::Trine::Parser::file_extensions{$_} = $FORMATS{$format}[0] }
+#			(@{$FORMATS{$format}[3]});
+#	}
 	
 	unless ($ENV{RDFTRINE_NO_REDLAND}) {
 		eval "use RDF::Redland 1.000701;";
@@ -197,35 +196,52 @@ sub parse {
 	return;
 }
 
-package RDF::Trine::Parser::Redland::RDFXML;
-use strict;
-use warnings;
-use base qw(RDF::Trine::Parser::Redland);
-sub new { shift->SUPER::new( @_, name => 'rdfxml' ) }
+######################################################################
 
-package RDF::Trine::Parser::Redland::NTriples;
-use strict;
-use warnings;
-use base qw(RDF::Trine::Parser::Redland);
-sub new { shift->SUPER::new( @_, name => 'ntriples' ) }
+package RDF::Trine::Parser::Turtle::Redland;
+use Moose;
+use constant media_types => [ 'application/x-turtle', 'application/turtle', 'text/turtle' ];
+use RDF::Trine::FormatRegistry '-register_parser';
+use constant redland_parser_format => 'turtle';
+with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
-package RDF::Trine::Parser::Redland::Turtle;
-use strict;
-use warnings;
-use base qw(RDF::Trine::Parser::Redland);
-sub new { shift->SUPER::new( @_, name => 'turtle' ) }
+######################################################################
 
-package RDF::Trine::Parser::Redland::Trig;
-use strict;
-use warnings;
-use base qw(RDF::Trine::Parser::Redland);
-sub new { shift->SUPER::new( @_, name => 'trig' ) }
+package RDF::Trine::Parser::RDFXML::Redland;
+no warnings 'redefine';
+use Moose;
+use constant media_types => [ 'application/rdf+xml', 'application/octet-stream', ];
+use RDF::Trine::FormatRegistry '-register_parser';
+use constant redland_parser_format => 'rdfxml';
+with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
-package RDF::Trine::Parser::Redland::RDFa;
-use strict;
-use warnings;
-use base qw(RDF::Trine::Parser::Redland);
-sub new { shift->SUPER::new( @_, name => 'librdfa' ) }
+######################################################################
+
+package RDF::Trine::Parser::NTriples::Redland;
+no warnings 'redefine';
+use Moose;
+use constant media_types => [ 'text/plain' ];
+use RDF::Trine::FormatRegistry '-register_parser';
+use constant redland_parser_format => 'ntriples';
+with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
+
+######################################################################
+
+package RDF::Trine::Parser::Trig::Redland;
+use Moose;
+use constant media_types => [ 'application/x-trig' ];
+use RDF::Trine::FormatRegistry '-register_parser';
+use constant redland_parser_format => 'trig';
+with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
+
+######################################################################
+
+package RDF::Trine::Parser::RDFa::Redland;
+use Moose;
+use constant media_types => [ 'application/xhtml+xml' ];
+use RDF::Trine::FormatRegistry '-register_parser';
+use constant redland_parser_format => 'trig';
+with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
 
 1;

@@ -7,7 +7,7 @@ use Data::Dumper;
 
 use RDF::Trine qw(literal);
 use RDF::Trine::Parser;
-use ok RDF::Trine::Parser::Turtle::Redland;
+use ok RDF::Trine::Parser::Redland;
 
 if ($RDF::Trine::Parser::Redland::HAVE_REDLAND_PARSER) {
     plan qw(no_plan);
