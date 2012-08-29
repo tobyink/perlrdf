@@ -130,6 +130,11 @@ sub find_format_by_capabilities {
 	return(wantarray ? @f : $f[0]);
 }
 
+sub known_media_types {
+	my $self = shift;
+	map { @{ $_->media_types } } $self->all_formats;
+}
+
 sub _build_formats {
 	my $self = shift;
 	
