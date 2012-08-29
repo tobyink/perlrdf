@@ -26,13 +26,14 @@ sub import {
 			FMT: for my $fmt (@{ $registry->formats }) {
 				if ($fmt->handles_media_type($mt)) {
 					$format = $fmt;
+                    $format->register_parser($parser);
 					last MT;
 				}
 			}
 		}
-		confess "No known formats with media types: "
-			. join(q[ ], @{ $parser->media_types });
-		$format->register_parser($parser);
+        unless ($format) {
+            confess "No known formats with media types: " . join(q[ ], @{ $parser->media_types });
+        }
 	}
 	
 	if ($cmd eq '-register_serializer') {
