@@ -30,36 +30,34 @@ L<RDF::Trine::Parser> class.
 
 package RDF::Trine::Parser::RDFJSON;
 
-use strict;
-use warnings;
-no warnings 'redefine';
-no warnings 'once';
-use base qw(RDF::Trine::Parser);
+use Moose;
+#no warnings 'redefine';
+#no warnings 'once';
+
+use constant media_types => [
+    'application/json',
+    'application/x-rdf+json',
+];
+
+use RDF::Trine::FormatRegistry '-register_parser';
 
 use URI;
 use Log::Log4perl;
 
-use RDF::Trine qw(literal);
 use RDF::Trine::Statement::Triple;
 use RDF::Trine::Namespace;
-use RDF::Trine::Error qw(:try);
+use RDF::Trine::Error;
+use TryCatch;
 
 use Scalar::Util qw(blessed looks_like_number);
 use JSON;
+
+with ('RDF::Trine::Parser::API');
 
 our ($VERSION, $rdf, $xsd);
 our ($r_boolean, $r_comment, $r_decimal, $r_double, $r_integer, $r_language, $r_lcharacters, $r_line, $r_nameChar_extra, $r_nameStartChar_minus_underscore, $r_scharacters, $r_ucharacters, $r_booltest, $r_nameStartChar, $r_nameChar, $r_prefixName, $r_qname, $r_resource_test, $r_nameChar_test);
 BEGIN {
 	$VERSION				= '1.000';
-	$RDF::Trine::Parser::parser_names{ 'rdfjson' }	= __PACKAGE__;
-	foreach my $ext (qw(json js)) {
-		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-	}
-	my $class										= __PACKAGE__;
-	$RDF::Trine::Parser::canonical_media_types{ $class }	= 'application/json';
-	foreach my $type (qw(application/json application/x-rdf+json)) {
-		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-	}
 }
 
 =item C<< new >>
@@ -67,24 +65,6 @@ BEGIN {
 Returns a new RDFJSON parser.
 
 =cut
-
-sub new {
-	my $class	= shift;
-	my %args	= @_;
-	my $prefix	= '';
-	if (defined($args{ bnode_prefix })) {
-		$prefix	= $args{ bnode_prefix };
-	} else {
-		$prefix	= $class->new_bnode_prefix();
-	}
-	my $self	= bless({
-					bindings		=> {},
-					bnode_id		=> 0,
-					bnode_prefix	=> $prefix,
-					@_
-				}, $class);
-	return $self;
-}
 
 =item C<< parse_into_model ( $base_uri, $data, $model [, context => $context] ) >>
 
@@ -132,6 +112,21 @@ sub parse {
 	my $input	= shift;
 	my $handler	= shift;
 	my $opts	= shift;
+
+	$self->_parse_graph($input, $handler, $uri, $$opts);
+}
+
+sub _parse_bindings {
+    my $self = shift;
+    $self->_graph_to_bindings( $self->_parse_graph( @_ ) );
+}
+
+sub _parse_graph {
+	my $self	= shift;
+	my $input	= shift;
+	my $handler	= shift;
+	my $uri		= shift;
+	my $opts	= shift;
 	
 	my $index	= eval { from_json($input, $opts) };
 	if ($@) {
@@ -140,7 +135,7 @@ sub parse {
 	
 	foreach my $s (keys %$index) {
 		my $ts = ( $s =~ /^_:(.*)$/ ) ?
-		         RDF::Trine::Node::Blank->new($self->{bnode_prefix} . $1) :
+		         RDF::Trine::Node::Blank->new($self->bnode_prefix . $1) :
 					RDF::Trine::Node::Resource->new($s, $uri);
 		
 		foreach my $p (keys %{ $index->{$s} }) {
@@ -167,17 +162,17 @@ sub parse {
 						$O->{'value'}, $O->{'lang'}, $O->{'datatype'});
 				} else {
 					$to = ( $O->{'value'} =~ /^_:(.*)$/ ) ?
-						RDF::Trine::Node::Blank->new($self->{bnode_prefix} . $1) :
+						RDF::Trine::Node::Blank->new($self->bnode_prefix . $1) :
 						RDF::Trine::Node::Resource->new($O->{'value'}, $uri);
 				}
 				
 				if ( $ts && $tp && $to ) {
-					if ($self->{canonicalize}) {
+					if ($self->canonicalize) {
 						if ($to->isa('RDF::Trine::Node::Literal') and $to->has_datatype) {
 							my $value	= $to->literal_value;
 							my $dt		= $to->literal_datatype;
 							my $canon	= RDF::Trine::Node::Literal->canonicalize_literal_value( $value, $dt, 1 );
-							$to	= literal( $canon, undef, $dt );
+							$to	= RDF::Trine::Node::Literal->new( $canon, undef, $dt );
 						}
 					}
 					my $st = RDF::Trine::Statement::Triple->new($ts, $tp, $to);
