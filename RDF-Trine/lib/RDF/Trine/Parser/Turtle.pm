@@ -30,38 +30,85 @@ L<RDF::Trine::Parser> class.
 
 package RDF::Trine::Parser::Turtle;
 
-use strict;
-use warnings;
-no warnings 'redefine';
-no warnings 'once';
-use base qw(RDF::Trine::Parser);
+use Moose;
+
+#no warnings 'redefine';
+#no warnings 'once';
 
 use URI;
-use Encode;
+use Encode qw(decode);
 use Log::Log4perl;
 use Scalar::Util qw(blessed looks_like_number);
 use URI::Escape qw(uri_unescape);
 
-use RDF::Trine qw(literal);
 use RDF::Trine::Statement::Triple;
 use RDF::Trine::Namespace;
 use RDF::Trine::Error;
+
+use constant media_types => [
+    'application/x-turtle',
+    'application/turtle',
+    'text/turtle'
+];
+
+use RDF::Trine::FormatRegistry '-register_parser';
+
+with ('RDF::Trine::Parser::API');
+
+
+has baseURI => (
+    is => 'rw',
+    isa => 'Maybe[Str]',
+);
+
+has tokens => (
+    is => 'rw',
+    isa => 'Str',
+    traits => ['String'],
+    default => "",
+    handles => {
+        match_tokens => 'match',
+        length_of_tokens => 'length',
+        replace_tokens => 'replace',
+        substr_tokens => 'substr',
+    }
+);
+
+has handle_triple => (
+    is => 'rw',
+    isa => 'CodeRef',
+    predicate => 'has_handle_triple',
+);
+
+has triple_count => (
+    is => 'rw',
+    isa => 'Num',
+    traits => ['Counter'],
+    default => 0,
+    handles => {
+        inc_triple_count => 'inc'
+    },
+);
+
+sub _parse_bindings {
+    # TODO
+}
 
 our ($VERSION, $rdf, $xsd);
 our ($r_boolean, $r_comment, $r_decimal, $r_double, $r_integer, $r_language, $r_lcharacters, $r_line, $r_nameChar_extra, $r_nameStartChar_minus_underscore, $r_scharacters, $r_ucharacters, $r_booltest, $r_nameStartChar, $r_nameChar, $r_prefixName, $r_qname, $r_resource_test, $r_nameChar_test);
 BEGIN {
 	$VERSION				= '1.000';
-	foreach my $ext (qw(ttl)) {
-		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-	}
-	$RDF::Trine::Parser::parser_names{ 'turtle' }	= __PACKAGE__;
-	my $class										= __PACKAGE__;
-	$RDF::Trine::Parser::encodings{ $class }		= 'utf8';
-	$RDF::Trine::Parser::format_uris{ 'http://www.w3.org/ns/formats/Turtle' }	= __PACKAGE__;
-	$RDF::Trine::Parser::canonical_media_types{ $class }	= 'text/turtle';
-	foreach my $type (qw(application/x-turtle application/turtle text/turtle)) {
-		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-	}
+#	foreach my $ext (qw(ttl)) {
+#		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
+#	}
+#	$RDF::Trine::Parser::parser_names{ 'turtle' }	= __PACKAGE__;
+#	my $class										= __PACKAGE__;
+#	$RDF::Trine::Parser::encodings{ $class }		= 'utf8';
+#	$RDF::Trine::Parser::format_uris{ 'http://www.w3.org/ns/formats/Turtle' }	= __PACKAGE__;
+#	$RDF::Trine::Parser::canonical_media_types{ $class }	= 'text/turtle';
+#	foreach my $type (qw(application/x-turtle application/turtle text/turtle)) {
+#		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
+#	}
 	
 	$rdf			= RDF::Trine::Namespace->new('http://www.w3.org/1999/02/22-rdf-syntax-ns#');
 	$xsd			= RDF::Trine::Namespace->new('http://www.w3.org/2001/XMLSchema#');
@@ -93,24 +140,6 @@ Returns a new Turtle parser.
 
 =cut
 
-sub new {
-	my $class	= shift;
-	my %args	= @_;
-	my $prefix	= '';
-	if (defined($args{ bnode_prefix })) {
-		$prefix	= $args{ bnode_prefix };
-	} else {
-		$prefix	= $class->new_bnode_prefix();
-	}
-	my $self	= bless({
-					bindings		=> {},
-					bnode_id		=> 0,
-					bnode_prefix	=> $prefix,
-					@_
-				}, $class);
-	return $self;
-}
-
 =item C<< parse_into_model ( $base_uri, $data, $model [, context => $context] ) >>
 
 Parses the C<< $data >>, using the given C<< $base_uri >>. For each RDF
@@ -125,22 +154,41 @@ C<< triple >> method for each RDF triple parsed. This method does nothing by
 default, but can be set by using one of the default C<< parse_* >> methods.
 
 =cut
-
 sub parse {
 	my $self	= shift;
 	my $uri		= shift;
 	my $input	= shift;
 	my $handler	= shift;
-	local($self->{handle_triple});
+	
+	$self->_parse_graph( $input, $handler, $uri );
+}
+
+around 'parse_into_model' => sub {
+    my $orig = shift;
+    my $self = shift;
+
+    if ($_[0]) {
+        my $input=decode( 'utf8', $_[0] );
+        $self->tokens($input);
+    }
+
+    return $self->$orig(@_)
+};
+
+sub _parse_graph {
+	my $self	= shift;
+	my $input	= shift;
+	my $handler	= shift;
+	my $uri		= shift;
 	if ($handler) {
-		$self->{handle_triple}	= $handler;
+		$self->handle_triple( $handler );
 	}
-	local($self->{baseURI})	= $uri;
+	$self->baseURI( $uri );
 	
 	$input	= '' unless (defined($input));
 	$input	=~ s/^\x{FEFF}//;
 	
-	local($self->{tokens})	= $input;
+#	$self->tokens($input);
 	$self->_Document();
 	return;
 }
@@ -156,10 +204,10 @@ sub parse_node {
 	my $self	= shift;
 	my $input	= shift;
 	my $uri		= shift;
-	local($self->{handle_triple});
-	local($self->{baseURI})	= $uri;
+#	local($self->{handle_triple});
+	$self->baseURI( $uri );
 	$input	=~ s/^\x{FEFF}//;
-	local($self->{tokens})	= $input;
+	$self->tokens( $input );
 	return $self->_object();
 }
 
@@ -167,17 +215,17 @@ sub _eat_re {
 	my $self	= shift;
 	my $thing	= shift;
 	my $l		= Log::Log4perl->get_logger("rdf.trine.parser.turtle");
-	if (not(length($self->{tokens}))) {
+	if (not $self->length_of_tokens) {
 		$l->error("no tokens left ($thing)");
 		throw RDF::Trine::Error::ParserError -text => "No tokens";
 	}
 	
-	if ($self->{tokens} =~ m/^($thing)/) {
+	if ($self->match_tokens(m/^($thing)/)) {
 		my $match	= $1;
-		substr($self->{tokens}, 0, length($match))	= '';
+		$self->substr_tokens(0, length($match), '');
 		return;
 	}
-	$l->error("Expected ($thing) with remaining: $self->{tokens}");
+	$l->error("Expected ($thing) with remaining: $self->tokens");
 	throw RDF::Trine::Error::ParserError -text => "Expected: $thing";
 }
 
@@ -185,15 +233,15 @@ sub _eat_re_save {
 	my $self	= shift;
 	my $thing	= shift;
 	my $l		= Log::Log4perl->get_logger("rdf.trine.parser.turtle");
-	if (not(length($self->{tokens}))) {
+	if (not $self->length_of_tokens) {
 		$l->error("no tokens left ($thing)");
 		throw RDF::Trine::Error::ParserError -text => "No tokens";
 	}
 	
-	if ($self->{tokens} =~ m/^$thing/) {
-		return substr($self->{tokens}, 0, $+[0], '');
+	if ($self->match_tokens(m/^$thing/)) {
+	    $self->substr_tokens(0, $+[0], '');
 	}
-	$l->error("Expected ($thing) with remaining: $self->{tokens}");
+	$l->error("Expected ($thing) with remaining: $self->tokens");
 	throw RDF::Trine::Error::ParserError -text => "Expected: $thing";
 }
 
@@ -201,17 +249,17 @@ sub _eat {
 	my $self	= shift;
 	my $thing	= shift;
 	my $l		= Log::Log4perl->get_logger("rdf.trine.parser.turtle");
-	if (not(length($self->{tokens}))) {
+	if (not $self->length_of_tokens) {
 		$l->error("no tokens left ($thing)");
 		throw RDF::Trine::Error::ParserError -text => "No tokens";
 	}
 	
 	### thing is a string
-	if (substr($self->{tokens}, 0, length($thing)) eq $thing) {
-		substr($self->{tokens}, 0, length($thing))	= '';
+	if ($self->substr_tokens(0, length($thing)) eq $thing) {
+		$self->substr_tokens(0, length($thing), '');
 		return;
 	} else {
-		$l->logcluck("expected: $thing, got: $self->{tokens}");
+		$l->logcluck("expected: $thing, got: $self->tokens");
 		throw RDF::Trine::Error::ParserError -text => "Expected: $thing";
 	}
 }
@@ -219,7 +267,7 @@ sub _eat {
 sub _test {
 	my $self	= shift;
 	my $thing	= shift;
-	if (substr($self->{tokens}, 0, length($thing)) eq $thing) {
+	if ($self->susbtr_tokens( 0, length($thing)) eq $thing) {
 		return 1;
 	} else {
 		return 0;
@@ -237,14 +285,14 @@ sub _triple {
 		}
 	}
 	
-	if ($self->{canonicalize}) {
+	if ($self->canonicalize) {
 		if ($o->isa('RDF::Trine::Node::Literal') and $o->has_datatype) {
 			$o = $o->canonicalize;
 		}
 	}
 	my $st	= RDF::Trine::Statement::Triple->new( $s, $p, $o );
-	if (my $code = $self->{handle_triple}) {
-		$code->( $st );
+	if ($self->has_handle_triple) {
+		$self->handle_triple->( $st );
 	}
 	
 	my $count	= ++$self->{triple_count};
@@ -259,7 +307,7 @@ sub _Document {
 
 sub _statement_test {
 	my $self	= shift;
-	if (length($self->{tokens})) {
+	if ($self->length_of_tokens) {
 		return 1;
 	} else {
 		return 0;
@@ -334,7 +382,7 @@ sub _prefixID {
 	$self->__consume_ws();
 	
 	my $uri = $self->_uriref();
-	$self->{bindings}{$prefix}	= $uri;
+	$self->set_binding($prefix => $uri);
 	
 	if (blessed(my $ns = $self->{namespaces})) {
 		unless ($ns->namespace_uri($prefix)) {
@@ -355,7 +403,7 @@ sub _base {
 	if (ref($uri)) {
 		$uri	= $uri->uri_value;
 	}
-	$self->{baseURI}	=	$self->_join_uri($self->{baseURI}, $uri);
+	$self->baseURI( $self->_join_uri($self->baseURI, $uri) );
 }
 
 sub _triples_test {
@@ -389,7 +437,7 @@ sub _predicateObjectList {
 	}
 	
   $self->__consume_ws();
-  while ($self->{tokens} =~ s/^;//) {
+  while ($self->match_tokens( s/^;//)) {
 		$self->__consume_ws();
 		if ($self->_verb_test()) { # @@
 			$pred = $self->_verb();
@@ -425,8 +473,8 @@ sub _objectList {
 
 sub _verb_test {
 	my $self	= shift;
-	return 0 unless (length($self->{tokens}));
-	return 1 if ($self->{tokens} =~ /^a\b/);
+	return 0 unless ($self->length_of_tokens);
+	return 1 if ($self->match_tokens(m/^a\b/));
 	return $self->_predicate_test();
 }
 
@@ -452,7 +500,7 @@ sub _subject {
 	my $self	= shift;
 	### resource | blank
 #	if ($self->_resource_test()) {
-	if (length($self->{tokens}) and $self->{tokens} =~ /^$r_resource_test/) {
+	if ($self->length_of_tokens and $self->match_tokens( m/^$r_resource_test/)) {
 		return $self->_resource();
 	} else {
 		return $self->_blank();
@@ -464,7 +512,7 @@ sub _predicate_test {
 	### between this and 'a'... a little tricky
 	### if it's a, it'll be followed by whitespace; whitespace is mandatory
 	### after a verb, which is the only thing predicate appears in
-	return 0 unless (length($self->{tokens}));
+	return 0 unless ($self->length_of_tokens);
 	return $self->_resource_test;
 }
 
@@ -478,7 +526,7 @@ sub _object {
 	my $self	= shift;
 	### resource | blank | literal
 #	if ($self->_resource_test()) {
-	if (length($self->{tokens}) and $self->{tokens} =~ /^$r_resource_test/) {
+	if ($self->length_of_tokens and $self->match_tokens( m/^$r_resource_test/)) {
 		return $self->_resource();
 	} elsif ($self->_blank_test()) {
 		return $self->_blank();
@@ -521,7 +569,7 @@ sub _literal {
 
 sub _double_test {
 	my $self	= shift;
-	if ($self->{tokens} =~ /^$r_double/) {
+	if ($self->match_tokens(m/^$r_double/)) {
 		return 1;
 	} else {
 		return 0;
@@ -539,7 +587,7 @@ sub _double {
 
 sub _decimal_test {
 	my $self	= shift;
-	if ($self->{tokens} =~ /^$r_decimal/) {
+	if ($self->match_tokens( m/^$r_decimal/) ) {
 		return 1;
 	} else {
 		return 0;
@@ -555,7 +603,7 @@ sub _decimal {
 
 sub _integer_test {
 	my $self	= shift;
-	if ($self->{tokens} =~ /^$r_integer/) {
+	if ($self->match_tokens(m/^$r_integer/)) {
 		return 1;
 	} else {
 		return 0;
@@ -583,7 +631,7 @@ sub _blank_test {
 	### _ | [ | (
 	### literal can start with...
 	### * " | + | - | digit | t | f
-	if ($self->{tokens} =~ m/^[_[(]/) {
+	if ($self->match_tokens( m/^[_[(]/)) {
 		return 1;
 	} else {
 		return 0;
@@ -617,8 +665,8 @@ sub _blank {
 sub _itemList_test {
 	my $self	= shift;
 	### between this and whitespace or ')'
-	return 0 unless (length($self->{tokens}));
-	if ($self->{tokens} !~ m/^[\r\n\t #)]/) {
+	return 0 unless ($self->length_of_tokens);
+	if (! $self->match_tokens(m/^[\r\n\t #)]/)) {
 		return 1;
 	} else {
 		return 0;
@@ -669,11 +717,11 @@ sub _collection {
 
 sub _ws_test {
 	my $self	= shift;
-	unless (length($self->{tokens})) {
+	unless ($self->length_of_tokens) {
 		return 0;
 	}
 	
-	if ($self->{tokens} =~ m/^[\t\r\n #]/) {
+	if ($self->match_tokens( m/^[\t\r\n #]/) ) {
 		return 1;
 	} else {
 		return 0;
@@ -699,8 +747,8 @@ sub _resource_test {
 	### quotedString ( '@' language )? | datatypeString | integer |
 	### double | decimal | boolean
 	### datatypeString = quotedString '^^' resource
-	return 0 unless (length($self->{tokens}));
-	if ($self->{tokens} =~ m/^$r_resource_test/) {
+	return 0 unless ($self->length_of_tokens);
+	if ($self->match_tokens(m/^$r_resource_test/)) {
 		return 1;
 	} else {
 		return 0;
@@ -712,10 +760,10 @@ sub _resource {
 	### uriref | qname
 	if ($self->_uriref_test()) {
 		my $uri	= $self->_uriref();
-		return $self->__URI($uri, $self->{baseURI});
+		return $self->__URI($uri, $self->baseURI);
 	} else {
 		my $qname	= $self->_qname();
-		my $base	= $self->{baseURI};
+		my $base	= $self->baseURI;
 		return $self->__URI($qname, $base);
 	}
 }
@@ -723,7 +771,7 @@ sub _resource {
 sub _nodeID_test {
 	my $self	= shift;
 	### between this (_) and []
-	if (substr($self->{tokens}, 0, 1) eq '_') {
+	if ($self->substr_tokens( 0, 1 ) eq '_') {
 		return 1;
 	} else {
 		return 0;
@@ -740,13 +788,13 @@ sub _nodeID {
 sub _qname {
 	my $self	= shift;
 	### prefixName? ':' name?
-	my $prefix	= ($self->{tokens} =~ /^$r_nameStartChar_minus_underscore/) ? $self->_prefixName() : '';
+	my $prefix	= ($self->match_tokens(m/^$r_nameStartChar_minus_underscore/)) ? $self->_prefixName() : '';
 	$self->_eat(':');
-	my $name	= ($self->{tokens} =~ /^$r_nameStartChar/) ? $self->_name() : '';
-	unless (exists $self->{bindings}{$prefix}) {
+	my $name	= ($self->match_tokens(/^$r_nameStartChar/)) ? $self->_name() : '';
+	unless ($self->has_binding($prefix)) {
 		throw RDF::Trine::Error::ParserError -text => "Undeclared prefix $prefix";
 	}
-	my $uri		= $self->{bindings}{$prefix};
+	my $uri		= $self->get_binding($prefix);
 	return $uri . $name
 }
 
@@ -780,7 +828,7 @@ sub _language {
 
 sub _nameStartChar_test {
 	my $self	= shift;
-	if ($self->{tokens} =~ /^$r_nameStartChar/) {
+	if ($self->match_tokens(m/^$r_nameStartChar/)) {
 		return 1;
 	} else {
 		return 0;
@@ -799,9 +847,9 @@ sub _nameStartChar {
 
 sub _nameChar_test {
 	my $self	= shift;
-	if ($self->{tokens} =~ /^$r_nameStartChar/) {
+	if ($self->match_tokens(/^$r_nameStartChar/)) {
 		return 1;
-	} elsif ($self->{tokens} =~ /^$r_nameChar_extra/) {
+	} elsif ($self->match_tokens(m/^$r_nameChar_extra/)) {
 		return 1;
 	} else {
 		return 0;
@@ -813,7 +861,7 @@ sub _nameChar {
 	### nameStartChar | '-' | [0-9] | #x00B7 | [#x0300-#x036F] | 
 	### [#x203F-#x2040]
 #	if ($self->_nameStartChar_test()) {
-	if ($self->{tokens} =~ /^$r_nameStartChar/) {
+	if ($self->match_tokens(/^$r_nameStartChar/)) {
 		my $nc	= $self->_nameStartChar();
 		return $nc;
 	} else {
@@ -832,7 +880,7 @@ sub _name {
 sub _prefixName_test {
 	my $self	= shift;
 	### between this and colon
-	if ($self->{tokens} =~ /^$r_nameStartChar_minus_underscore/) {
+	if ($self->match_tokens(/^$r_nameStartChar_minus_underscore/)) {
 		return 1;
 	} else {
 		return 0;
@@ -846,7 +894,7 @@ sub _prefixName {
 	my $nsc	= $self->_eat_re_save( $r_nameStartChar_minus_underscore );
 	push(@parts, $nsc);
 #	while ($self->_nameChar_test()) {
-	while ($self->{tokens} =~ /^$r_nameChar_test/) {
+	while ($self->match_tokens(/^$r_nameChar_test/)) {
 		my $nc	= $self->_nameChar();
 		push(@parts, $nc);
 	}
@@ -862,7 +910,7 @@ sub _relativeURI {
 
 sub _quotedString_test {
 	my $self	= shift;
-	if (substr($self->{tokens}, 0, 1) eq '"') {
+	if ($self->substr_tokens(0, 1) eq '"') {
 		return 1;
 	} else {
 		return 0;
@@ -980,13 +1028,13 @@ sub __anonimize_bnode_id {
 
 sub __generate_bnode_id {
 	my $self	= shift;
-	my $id		= $self->{ bnode_id }++;
-	return 'r' . $self->{bnode_prefix} . 'r' . $id;
+	$self->inc_bnode_id;    # increase bnode_id counter
+	return 'r' . $self->bnode_prefix . 'r' . $self->bnode_id;
 }
 
 sub __consume_ws {
 	my $self	= shift;
-	while ($self->{tokens} =~ m/^[\t\r\n #]/) {
+	while ($self->match_tokens(m/^[\t\r\n #]/)) {
 		$self->_ws()
 	}
 }
@@ -1017,7 +1065,7 @@ sub __DatatypedLiteral {
 sub __startswith {
 	my $self	= shift;
 	my $thing	= shift;
-	if (substr($self->{tokens}, 0, length($thing)) eq $thing) {
+	if ($self->substr_tokens( 0, length($thing)) eq $thing) {
 		return 1;
 	} else {
 		return 0;
@@ -1057,6 +1105,8 @@ sub _unescape {
 	}
 	return $us;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 
