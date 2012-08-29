@@ -10,8 +10,11 @@ use RDF::Trine::Format;
 
 sub import {
 	my ($class, $cmd, @args) = @_;
+
+	return unless $cmd;
 	
 	my $registry = $class->instance;
+
 	
 	if ($cmd eq '-format') {
 		$registry->register_format(
@@ -26,6 +29,7 @@ sub import {
 			FMT: for my $fmt (@{ $registry->formats }) {
 				if ($fmt->handles_media_type($mt)) {
 					$format = $fmt;
+                    $format->register_parser($parser);
 					last MT;
 				}
 			}
@@ -130,11 +134,20 @@ sub find_format_by_name {
 }
 
 sub find_format_by_capabilities {
-	my ($self, $opts) = @_;
-	$opts //= {};
-	my @f = $self->filter_formats(sub { $_->matches_opts($opts) });
+	my $self = shift;
+    my %opts = @_ == 0 ? () : @_ == 1 ? %{ $_[0] } : @_;
+	my @f = $self->filter_formats(sub { $_->matches_opts(\%opts) });
 	return unless @f;
 	return(wantarray ? @f : $f[0]);
+}
+
+sub known_names {
+	my $self = shift;
+	return map  { $_->name } $self->all_formats;
+}
+sub known_format_uris {
+	my $self = shift;
+	return map  { $_->format_uri } $self->all_formats;
 }
 
 sub known_media_types {
@@ -316,7 +329,7 @@ __END__
 
 RDF::Trine::FormatRegistry - file formats that RDF::Trine knows about
 
-=head DESCRIPTION
+=head1 DESCRIPTION
 
 RDF::Trine::FormatRegistry keeps a list of file formats that RDF::Trine is
 aware of. A registry is an object, and you can make your own registry like
@@ -381,7 +394,7 @@ The list of known formats, as an arrayref.
 
 The list of known formats, as a list.
 
-=item C<< filter_formats($coderef)>>
+=item C<< filter_formats($coderef) >>
 
 Grep the list of known formats.
 
@@ -415,13 +428,21 @@ Searches for a format by format URI.
 
 Searches for a format by media (MIME) type.
 
-=item C<< find_format_by_media_type($name, \%features) >>
+=item C<< find_format_by_name($name, \%features) >>
 
 Searches for a format by name.
 
 =item C<< find_format_by_capabilities(\%features) >>
 
 Searches for a format by language features alone.
+
+=item C<< known_names >>
+
+Returns a list of the names of all formats.
+
+=item C<< known_format_uris >>
+
+Returns a list of the format spec URIs of all formats.
 
 =item C<< known_media_types >>
 

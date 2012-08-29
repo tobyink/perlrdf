@@ -30,25 +30,26 @@ L<RDF::Trine::Parser> class.
 
 package RDF::Trine::Parser::TriG;
 
-use strict;
-use warnings;
-no warnings 'redefine';
-no warnings 'once';
-use base qw(RDF::Trine::Parser::Turtle);
+our $VERSION; BEGIN { $VERSION = '1.000'; }
 
-use RDF::Trine qw(literal);
+use Moose;
 
-our ($VERSION);
-BEGIN {
-	$VERSION				= '1.000';
-	$RDF::Trine::Parser::parser_names{ 'trig' }	= __PACKAGE__;
-	foreach my $ext (qw(trig)) {
-		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-	}
-# 	foreach my $type (qw(application/x-turtle application/turtle text/turtle)) {
-# 		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-# 	}
-}
+use constant media_types => [
+    'application/x-turtle',
+    'application/turtle',
+    'text/turtle',
+];
+
+use RDF::Trine::FormatRegistry '-register_parser';
+
+extends 'RDF::Trine::Parser::Turtle';
+
+has graph => (
+    is => 'rw',
+    does => 'RDF::Trine::Node::API',
+    predicate => 'has_graph',
+    clearer => 'reset_graph',
+);
 
 sub _triple {
 	my $self	= shift;
@@ -61,22 +62,26 @@ sub _triple {
 		}
 	}
 	
-	my $graph	= $self->{graph};
-	if ($self->{canonicalize}) {
+	my $graph	= $self->graph;
+	if ($self->canonicalize) {
 		if ($o->isa('RDF::Trine::Node::Literal') and $o->has_datatype) {
 			my $value	= $o->literal_value;
 			my $dt		= $o->literal_datatype;
 			my $canon	= RDF::Trine::Node::Literal->canonicalize_literal_value( $value, $dt, 1 );
-			$o	= literal( $canon, undef, $dt );
+			$o	= RDF::Trine::Node::Literal->new( $canon, undef, $dt );
 		}
 	}
-	my $st		= RDF::Trine::Statement::Quad->new( $s, $p, $o, $graph );
-	
-	if (my $code = $self->{handle_triple}) {
-		$code->( $st );
+	my $st;
+	if ($self->has_graph) {
+        $st	= RDF::Trine::Statement::Quad->new( $s, $p, $o, $graph );
+    } else {	
+        $st	= RDF::Trine::Statement::Triple->new( $s, $p, $o );
+    }
+	if ($self->has_handle_triple) {
+		$self->handle_triple->( $st );
 	}
 	
-	my $count	= ++$self->{triple_count};
+	my $count	= $self->inc_triple_count;
 }
 
 sub _Document {
@@ -88,7 +93,7 @@ sub _Document {
 
 sub _statement_test {
 	my $self	= shift;
-	if (length($self->{tokens})) {
+	if ($self->length_of_tokens) {
 		return 1;
 	} else {
 		return 0;
@@ -121,9 +126,10 @@ sub _graph_test {
 sub _graph {
 	my $self	= shift;
 	if ($self->_resource_test) {
-		$self->{graph}	= $self->_resource;
+		$self->graph($self->_resource);
 	} else {
-		$self->{graph}	= RDF::Trine::Node::Nil->new();
+        # TODO should probably be '$self->reset_graph'
+		$self->(RDF::Trine::Node::Nil->new());
 	}
 	$self->__consume_ws();
 	if ($self->__startswith('=')) {
@@ -136,7 +142,7 @@ sub _graph {
 	while ($self->_triples_test()) {
 		unless ($gotdot) {
 			use Data::Dumper;
-			warn Dumper($self->{tokens});
+			warn Dumper($self->tokens);
 			throw RDF::Trine::Error::ParserError -text => "Missing '.' between triples";
 		}
 		$self->_triples();

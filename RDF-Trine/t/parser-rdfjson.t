@@ -19,7 +19,7 @@ use_ok('RDF::Trine::Parser::RDFJSON');
 	}
 }
 END
-	my $parser	= RDF::Trine::Parser->new( 'RDF/JSON' );
+	my $parser	= RDF::Trine::Parser::RDFJSON->new;
 	my $model = RDF::Trine::Model->new(RDF::Trine::Store->temporary_store);
 	$parser->parse_into_model(undef, $json, $model);
 	
@@ -45,7 +45,7 @@ END
 	}
 }
 END
-	my $parser	= RDF::Trine::Parser->new( 'RDF/JSON' );
+	my $parser	= RDF::Trine::Parser::RDFJSON->new;
 	my $model = RDF::Trine::Model->temporary_model;
 	$parser->parse_into_model(undef, $json, $model);
 	my $p	= RDF::Trine::Node::Resource->new('http://example.com/predicate');

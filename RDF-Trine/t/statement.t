@@ -27,7 +27,7 @@ my $v		= RDF::Trine::Node::Variable->new('v');
 	my $st		= RDF::Trine::Statement::Triple->new( $kasei, $rdf->type, $foaf->Document );
 	is_deeply( [ $st->node_names ], [qw(subject predicate object)], 'triple node names' );
 	is( $st->type, 'TRIPLE' );
-	isa_ok( $st, 'RDF::Trine::Statement' );
+	isa_ok( $st, 'RDF::Trine::Statement::Triple' );
 	isa_ok( $st->subject, 'RDF::Trine::Node::Resource' );
 	isa_ok( $st->predicate, 'RDF::Trine::Node::Resource' );
 	isa_ok( $st->object, 'RDF::Trine::Node::Resource' );
@@ -127,7 +127,7 @@ SKIP: {
 		isa_ok( $statement, 'RDF::Redland::Statement' );
 		
 		my $st	= RDF::Trine::Statement::API->from_redland( $statement );
-		isa_ok( $st, 'RDF::Trine::Statement' );
+		isa_ok( $st, 'RDF::Trine::Statement::Triple' );
 		is( $st->sse, '(triple <http://example.com/doc> <http://example.com/maker> _:eve)', 'triple sse after from_redland' );
 	}
 	

@@ -3,10 +3,14 @@ package RDF::Trine::Serializer::API;
 use Moose::Role;
 use IO::Detect qw(is_filehandle);
 
-requires qw(
-	_serialize_graph
-	_serialize_bindings
-	media_types
+with (
+    'RDF::Trine::Iterator::API::Converter'
+);
+
+requires (
+    '_serialize_graph',
+    '_serialize_bindings',
+    'media_types',
 );
 
 sub _ensure_fh
@@ -137,11 +141,11 @@ A constant arrayref of supported media types, used for linking serializers to fo
 
 =item C<< _serialize_bindings($iter, $fh, $base) >>
 
-Takes a binding iterator and serializes it to a filehandle
+Takes binding iterator $iter and serializes it to a filehandle $fh, optionally using the base URI $base.
 
 =item C<< _serialize_graph($iter, $fh, $base) >>
 
-Takes a graph iterator and serializes it to a filehandle
+Takes graph iterator $iter and serializes it to filehandle $fh, optionally using the base URI $base.
 
 =back
 

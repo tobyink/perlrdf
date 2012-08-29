@@ -152,7 +152,10 @@ sub from_redland {
 		}
 	};
 	
-	return $self->new({
+    my $class = defined($graph)
+      ? 'RDF::Trine::Statement::Quad'
+      : 'RDF::Trine::Statement::Triple';
+	return $class->new({
 		subject   => $cast->($rstmt->subject),
 		predicate => $cast->($rstmt->predicate),
 		object    => $cast->($rstmt->object),

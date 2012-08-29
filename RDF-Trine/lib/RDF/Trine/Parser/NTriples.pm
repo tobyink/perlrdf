@@ -29,38 +29,31 @@ L<RDF::Trine::Parser> class.
 =cut
 
 package RDF::Trine::Parser::NTriples;
+use Moose;
 
-use strict;
-use warnings;
+
 use utf8;
-
-use base qw(RDF::Trine::Parser);
+use constant media_types => ['text/plain'];
+use RDF::Trine::FormatRegistry '-register_parser';
 
 use Carp;
 use Encode qw(decode);
 use Data::Dumper;
 use Log::Log4perl;
 use Scalar::Util qw(blessed reftype);
+use TryCatch;
 
-use RDF::Trine qw(literal);
 use RDF::Trine::Statement::Triple;
-use RDF::Trine::Error qw(:try);
+# TODO use RDF::Trine::Exception;
+#use RDF::Trine::Error qw(:try);
+
+with ('RDF::Trine::Parser::API');
 
 ######################################################################
 
 our ($VERSION);
 BEGIN {
 	$VERSION	= '1.000';
-	$RDF::Trine::Parser::parser_names{ 'ntriples' }	= __PACKAGE__;
-	foreach my $ext (qw(nt)) {
-		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-	}
-	my $class										= __PACKAGE__;
-	$RDF::Trine::Parser::canonical_media_types{ $class }	= 'text/plain';
-	foreach my $type (qw(text/plain)) {
-		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-	}
-	$RDF::Trine::Parser::format_uris{ 'http://www.w3.org/ns/formats/N-Triples' }	= __PACKAGE__;
 }
 
 ######################################################################
@@ -98,7 +91,7 @@ sub parse {
 	my $string	= shift;
 	my $handler	= shift;
 	open( my $fh, '<:utf8', \$string );
-	return $self->parse_file( $base, $fh, $handler );
+	return $self->_parse_graph( $fh, $handler, $base );
 }
 
 =item C<< parse_node ( $string, $base ) >>
@@ -125,15 +118,27 @@ sub parse_file {
 	my $base	= shift;
 	my $fh		= shift;
 	my $handler	= shift;
+
+    return $self->_parse_graph( $fh, $handler, $base );
+}
+
+sub _parse_bindings {
+    my $self = shift;
+
+    return $self->_graph_to_bindings( $self->_parse_graph( @_ ) );
+}
+
+sub _parse_graph {
+	my $self	= shift;
+	my $fh		= shift;
+	my $handler	= shift;
+	my $base	= shift;
 	
-	unless (ref($fh)) {
-		my $filename	= $fh;
-		undef $fh;
-		open( $fh, '<:utf8', $filename ) or throw RDF::Trine::Error::ParserError -text => $!;
-	}
+	$self->_ensure_fh( $fh );
 	
 	my $lineno	= 0;
 	no warnings 'uninitialized';
+#	warn Dumper $fh;
 	while (defined(my $line = <$fh>)) {
 LINE:
 		($line, my @extra)	= split(/\r\n|\r|\n/, $line, 2);
@@ -167,6 +172,7 @@ LINE:
 	}
 }
 
+
 sub _emit_statement {
 	my $self	= shift;
 	my $handler	= shift;
@@ -174,7 +180,7 @@ sub _emit_statement {
 	my $lineno	= shift;
 	my $st;
 	if (scalar(@$nodes) == 3) {
-		if ($self->{canonicalize}) {
+		if ($self->canonicalize) {
 			if ($nodes->[2]->isa('RDF::Trine::Node::Literal') and $nodes->[2]->has_datatype) {
 				$nodes->[2] = $nodes->[2]->canonicalize;
 			}

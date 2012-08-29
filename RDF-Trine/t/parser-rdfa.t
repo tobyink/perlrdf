@@ -6,7 +6,6 @@ use Test::Exception;
 use FindBin qw($Bin);
 use File::Spec;
 
-use RDF::Trine qw(literal);
 use RDF::Trine::Parser;
 use RDF::Trine::Serializer::NTriples::Canonical;
 
@@ -41,7 +40,7 @@ SKIP: {
 		my $name	= $names{ $file };
 		
 		{
-			my $parser	= RDF::Trine::Parser->new('rdfa');
+			my $parser	= RDF::Trine::Parser::RDFa->new;
 			my $data	= do { open( my $fh, '<', $file ); local($/) = undef; <$fh> };
 			my (undef, undef, $test)	= File::Spec->splitpath( $file );
 			my $model	= RDF::Trine::Model->new(RDF::Trine::Store->temporary_store);
@@ -52,7 +51,7 @@ SKIP: {
 		}
 		
 		{
-			my $parser	= RDF::Trine::Parser->new('rdfa');
+			my $parser	= RDF::Trine::Parser::RDFa->new;
 			my $url	= 'file://' . $file;
 			my $model	= RDF::Trine::Model->temporary_model;
 			$parser->parse_file_into_model( $url, $file, $model );
