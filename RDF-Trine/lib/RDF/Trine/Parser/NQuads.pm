@@ -30,11 +30,8 @@ L<RDF::Trine::Parser> class.
 
 package RDF::Trine::Parser::NQuads;
 
-use strict;
-use warnings;
+use Moose;
 use utf8;
-
-use base qw(RDF::Trine::Parser::NTriples);
 
 use Carp;
 use Encode qw(decode);
@@ -44,23 +41,19 @@ use Scalar::Util qw(blessed reftype);
 
 use RDF::Trine qw(literal);
 use RDF::Trine::Statement::Triple;
-use RDF::Trine::Error qw(:try);
+use RDF::Trine::Error;
+use TryCatch;
+use constant media_types => [
+    'text/x-nquads',
+];
+
+extends 'RDF::Trine::Parser::NTriples';
 
 ######################################################################
 
 our ($VERSION);
 BEGIN {
 	$VERSION	= '1.000';
-	$RDF::Trine::Parser::parser_names{ 'nquads' }	= __PACKAGE__;
-	$RDF::Trine::Parser::format_uris{ 'http://sw.deri.org/2008/07/n-quads/#n-quads' }	= __PACKAGE__;
-	foreach my $ext (qw(nq)) {
-		$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-	}
-	my $class										= __PACKAGE__;
-	$RDF::Trine::Parser::canonical_media_types{ $class }	= 'text/x-nquads';
-	foreach my $type (qw(text/x-nquads)) {
-		$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-	}
 }
 
 ######################################################################
@@ -91,7 +84,15 @@ sub parse_into_model {
 		my $st	= shift;
 		$model->add_statement( $st );
 	};
-	return $self->parse( $uri, $input, $handler );
+
+    # ensure that _parse_graph/_parse_bindings gets an iterator
+	my $fh = (ref $input) ? $input : IO::String->new($input);
+
+	return $self->_parse_graph( $fh, $handler, $uri );
+}
+
+sub _parse_bindings {
+    # TODO
 }
 
 sub _emit_statement {
@@ -101,7 +102,7 @@ sub _emit_statement {
 	my $lineno	= shift;
 	my $st;
 	
-	if ($self->{canonicalize}) {
+	if ($self->canonicalize) {
 		if ($nodes->[2]->isa('RDF::Trine::Node::Literal') and $nodes->[2]->has_datatype) {
 			$nodes->[2] = $nodes->[2]->canonicalize;
 		}
@@ -112,7 +113,6 @@ sub _emit_statement {
 	} elsif (scalar(@$nodes) == 4) {
 		$st	= RDF::Trine::Statement::Quad->new( @$nodes );
 	} else {
-# 		warn Dumper($nodes);
 		throw RDF::Trine::Error::ParserError -text => qq[Not valid N-Quads data at line $lineno];
 	}
 	

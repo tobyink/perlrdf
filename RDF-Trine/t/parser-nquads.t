@@ -20,7 +20,7 @@ use RDF::Trine::Parser;
 # ] );
 ################################################################################
 
-my $parser	= RDF::Trine::Parser->new( 'nquads' );
+my $parser	= RDF::Trine::Parser::NQuads->new;
 isa_ok( $parser, 'RDF::Trine::Parser::NQuads' );
 
 {
@@ -46,7 +46,7 @@ END
 
 {
 	# Canonicalization tests
-	my $parser	= RDF::Trine::Parser->new( 'nquads', canonicalize => 1 );
+	my $parser	= RDF::Trine::Parser::NQuads->new( canonicalize => 1 );
 	{
 		my $model = RDF::Trine::Model->temporary_model;
 		my $ntriples	= qq[_:a <http://example.com/integer> "-0123"^^<http://www.w3.org/2001/XMLSchema#integer> <g> .\n];

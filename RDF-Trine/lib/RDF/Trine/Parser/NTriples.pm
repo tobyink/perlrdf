@@ -138,6 +138,7 @@ sub _parse_graph {
 	
 	my $lineno	= 0;
 	no warnings 'uninitialized';
+#	warn Dumper $fh;
 	while (defined(my $line = <$fh>)) {
 LINE:
 		($line, my @extra)	= split(/\r\n|\r|\n/, $line, 2);
@@ -179,7 +180,7 @@ sub _emit_statement {
 	my $lineno	= shift;
 	my $st;
 	if (scalar(@$nodes) == 3) {
-		if ($self->{canonicalize}) {
+		if ($self->canonicalize) {
 			if ($nodes->[2]->isa('RDF::Trine::Node::Literal') and $nodes->[2]->has_datatype) {
 				$nodes->[2] = $nodes->[2]->canonicalize;
 			}
