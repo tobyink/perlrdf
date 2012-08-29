@@ -26,69 +26,69 @@ sub _ensure_fh
 
 sub model_to_file
 {
-	my ($self, $model, $fh) = @_;
+	my ($self, $model, $fh, $base) = @_;
 	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_graph( $model->as_stream => $fh );
+	$self->_serialize_graph( $model->as_stream => $fh, $base );
 }
 
 sub model_to_string
 {
-	my ($self, $model) = @_;
+	my ($self, $model, $base) = @_;
 	my $string;
 	open my $fh, '>', \$string;
-	$self->_serialize_graph( $model->as_stream => $fh );
+	$self->_serialize_graph( $model->as_stream => $fh, $base );
 	close $fh;
 	return $string;
 }
 
 sub bindings_iterator_to_file
 {
-	my ($self, $iter, $fh) = @_;
+	my ($self, $iter, $fh, $base) = @_;
 	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_bindings( $iter => $fh );
+	$self->_serialize_bindings( $iter => $fh, $base );
 }
 
 sub bindings_iterator_to_string
 {
-	my ($self, $iter) = @_;
+	my ($self, $iter, $base) = @_;
 	my $string;
 	open my $fh, '>', \$string;
-	$self->_serialize_bindings( $iter => $fh );
+	$self->_serialize_bindings( $iter => $fh, $base );
 	close $fh;
 	return $string;
 }
 
 sub graph_iterator_to_file
 {
-	my ($self, $iter, $fh) = @_;
+	my ($self, $iter, $fh, $base) = @_;
 	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_graph( $iter => $fh );
+	$self->_serialize_graph( $iter => $fh, $base );
 }
 
 sub graph_iterator_to_string
 {
-	my ($self, $iter) = @_;
+	my ($self, $iter, $base) = @_;
 	my $string;
 	open my $fh, '>', \$string;
-	$self->_serialize_graph( $iter => $fh );
+	$self->_serialize_graph( $iter => $fh, $base );
 	close $fh;
 	return $string;
 }
 
 sub iterator_to_file
 {
-	my ($self, $iter, $fh) = @_;
+	my ($self, $iter, $fh, $base) = @_;
 	$iter->is_graph
-		? $self->graph_iterator_to_file( $iter => $fh )
-		: $self->bindings_iterator_to_file( $iter => $fh )
+		? $self->graph_iterator_to_file( $iter => $fh, $base )
+		: $self->bindings_iterator_to_file( $iter => $fh, $base )
 }
 
 sub iterator_to_string
 {
-	my ($self, $iter) = @_;
+	my ($self, $iter, $base) = @_;
 	$iter->is_graph
-		? $self->graph_iterator_to_string( $iter )
-		: $self->bindings_iterator_to_string( $iter )
+		? $self->graph_iterator_to_string( $iter, $base )
+		: $self->bindings_iterator_to_string( $iter, $base )
 }
 
 # back-compat
@@ -151,29 +151,32 @@ Takes graph iterator $iter and serializes it to filehandle $fh, optionally using
 
 =head2 Methods
 
-This role provides the following methods:
+This role provides the following methods.
+
+Note that methods which accept a file handle also accept a file name;
+and that base URIs are optional and generally ignored. (Most serializers
+just output absolute URIs everywhere. Base URIs exist in the API just in
+case a particular serializer needs them.)
 
 =over 4
 
-=item C<< model_to_file($model => $fh) >>
+=item C<< model_to_file($model => $fh, $base) >>
 
-Note that methods which accept a file handle, also accept a file name.
+=item C<< model_to_string($model, $base) >>
 
-=item C<< model_to_string($model) >>
+=item C<< graph_iterator_to_file($iter => $fh, $base) >>
 
-=item C<< graph_iterator_to_file($iter => $fh) >>
+=item C<< graph_iterator_to_string($iter, $base) >>
 
-=item C<< graph_iterator_to_string($iter) >>
+=item C<< bindings_iterator_to_file($iter => $fh, $base) >>
 
-=item C<< bindings_iterator_to_file($iter => $fh) >>
+=item C<< bindings_iterator_to_string($iter, $base) >>
 
-=item C<< bindings_iterator_to_string($iter) >>
-
-=item C<< iterator_to_file($iter => $fh) >>
+=item C<< iterator_to_file($iter => $fh, $base) >>
 
 Automatically detects whether $iter is a graph or bindings iterator.
 
-=item C<< iterator_to_string($iter) >>
+=item C<< iterator_to_string($iter, $base) >>
 
 Automatically detects whether $iter is a graph or bindings iterator.
 

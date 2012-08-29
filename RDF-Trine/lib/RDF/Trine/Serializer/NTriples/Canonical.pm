@@ -1,123 +1,44 @@
-=head1 NAME
-
-RDF::Trine::Serializer::NTriples::Canonical - Canonical representation of an RDF model
-
-=head1 VERSION
-
-This document describes RDF::Trine::Serializer::NTriples::Canonical version 1.000
-
-=head1 SYNOPSIS
-
-  use RDF::Trine::Serializer::NTriples::Canonical;
-  my $serializer = RDF::Trine::Serializer::NTriples->new( onfail=>'truncate' );
-  $serializer->serialize_model_to_file(FH, $model);
-
-=head1 DESCRIPTION
-
-This module produces a canonical string representation of an RDF graph.
-If the graph contains blank nodes, sometimes there is no canonical
-representation that can be produced. The 'onfail' option allows you to
-decide what is done in those circumstances:
-
-=over 8
-
-=item * truncate - drop problematic triples and only serialize a subgraph.
-
-=item * append - append problematic triples to the end of graph. The result will be non-canonical. This is the default behaviour.
-
-=item * space - As with 'append', but leave a blank line separating the canonical and non-canonical portions of the graph.
-
-=item * die - cause a fatal error.
-
-=back
-
-Other than the 'onfail' option, this package has exactly the same
-interface as L<RDF::Trine::Serializer::NTriples>, providing
-C<serialize_model_to_file> and C<serialize_model_to_string> methods.
-
-This package will be considerably slower than the non-canonicalising
-serializer though, so should only be used for small to medium-sized
-graphs, and only when you need canonicalisation (e.g. for side-by-side
-comparison of two graphs to check they're isomorphic; or creating a
-canonical representation for digital signing).
-
-=head1 METHODS
-
-Beyond the methods documented below, this class inherits methods from the
-L<RDF::Trine::Serializer::NTriples> class.
-
-=over 4
-
-=cut
-
 package RDF::Trine::Serializer::NTriples::Canonical;
 
-use 5.008001;
-use strict;
-use warnings;
-
-use Carp;
+use constant media_types => [qw( text/plain )];
 use RDF::Trine;
-use base qw(RDF::Trine::Serializer::NTriples);
+use RDF::Trine::FormatRegistry -register_serializer;
 
-######################################################################
+use Moose;
+use Moose::Util::TypeConstraints qw(enum);
+use namespace::autoclean;
 
-our ($VERSION);
-BEGIN {
-	$VERSION	= '1.000';
-	$RDF::Trine::Serializer::serializer_names{ 'ntriples-canonical' }	= __PACKAGE__;
-# 	foreach my $type (qw(text/plain)) {
-# 		$RDF::Trine::Serializer::media_types{ $type }	= __PACKAGE__;
-# 	}
+with qw(
+	RDF::Trine::Serializer::API
+);
+
+sub speed { 1 };  # we need the capabilities API!!
+
+has onfail => (
+	is      => 'ro',
+	isa     => enum([qw( truncate space append die )]),
+	default => 'append',
+);
+
+sub _serialize_graph {
+	my ($self, $iter, $fh) = @_;
+	my $model = RDF::Trine::Model->new;
+	$model->add_iterator($iter);
+	$self->model_to_file($model => $fh);
 }
 
-######################################################################
-
-=item C<< new ( [ onfail => $rule ] ) >>
-
-Returns a new Canonical N-Triples serializer object. If specified, the value of
-the 'onfail' argument dictates the handling of blank nodes with no canonical
-representation. The allowable rule values are 'truncate', 'append', 'space',
-and 'die', and their respective behaviour is described in L</DESCRIPTION> above.
-
-=cut
-
-sub new {
-	my $class = shift;
-	my %opts;
-	
-	while (@_) {
-		my $field = lc shift;
-		my $value = shift;
-		$opts{$field} = $value;
-	}
-	
-	return bless \%opts, $class;
+sub _serialize_bindings {
+	confess "cannot handle bindings";
 }
 
-=item C<< serialize_model_to_file ( $fh, $model ) >>
-
-Serializes the C<$model> to canonical NTriples, printing the results to the
-supplied filehandle C<<$fh>>.
-
-=cut
-
-sub serialize_model_to_file {
+sub model_to_file {
 	my $self  = shift;
-	my $file  = shift;
 	my $model = shift;
-	
-	my $string = $self->serialize_model_to_string($model);
-	print {$file} $string;
+	my $file  = $self->_ensure_fh(shift);
+	print {$file} $self->model_to_string($model);
 }
 
-=item C<< serialize_model_to_string ( $model ) >>
-
-Serializes the C<$model> to canonical NTriples, returning the result as a string.
-
-=cut
-
-sub serialize_model_to_string {
+sub model_to_string {
 	my $self  = shift;
 	my $model = shift;
 	
@@ -205,9 +126,9 @@ sub serialize_model_to_string {
 	my @otherStatements;
 	foreach my $st (@statements) {
 		if ($st->{'lex'} =~ /(^\~)|(\~$)/) {
-			if (lc $self->{'onfail'} eq 'die') {
-				croak "Model could not be canonicalised";
-			} elsif (lc $self->{'onfail'} eq 'truncate') {
+			if ($self->onfail eq 'die') {
+				confess "Model could not be canonicalised";
+			} elsif ($self->onfail eq 'truncate') {
 				next;
 			}
 			
@@ -230,7 +151,7 @@ sub serialize_model_to_string {
 				my $b = $blankNodes->{ $st->{'trine'}->subject->blank_identifier }->{'lex'};
 				$st->{'lex'} =~ s/^\~/$b/;
 			}
-
+			
 			push @otherStatements, $st;
 		} else {
 			push @canonicalStatements, $st;
@@ -241,26 +162,57 @@ sub serialize_model_to_string {
 	foreach my $st (@canonicalStatements) {
 		$rv .= $st->{'lex'} . " .\r\n";
 	}
-
+	
 	$rv .= "\r\n"
-		if (defined($self->{'onfail'}) && (lc $self->{'onfail'} eq 'space'));
+		if $self->onfail eq 'space';
 	
 	foreach my $st (@otherStatements) {
 		$rv .= $st->{'lex'} . " .\r\n";
 	}
-
+	
 	return $rv;
 }
 
 1;
 __END__
 
+=head1 NAME
+
+RDF::Trine::Serializer::NTriples::Canonical - canonical N-Triples representation of an RDF model
+
+=head1 SYNOPSIS
+
+  use RDF::Trine::Serializer::NTriples::Canonical;
+  my $serializer = RDF::Trine::Serializer::NTriples->new(onfail => 'truncate');
+  $serializer->model_to_file($model => $fh);
+
+=head1 DESCRIPTION
+
+This module produces a canonical string representation of an RDF graph.
+If the graph contains blank nodes, sometimes there is no canonical
+representation that can be produced. The 'onfail' option allows you to
+decide what is done in those circumstances:
+
+=over 8
+
+=item * truncate - drop problematic triples and only serialize a subgraph.
+
+=item * append - append problematic triples to the end of graph. The result will be non-canonical. This is the default behaviour.
+
+=item * space - As with 'append', but leave a blank line separating the canonical and non-canonical portions of the graph.
+
+=item * die - cause a fatal error.
+
 =back
 
-=head1 BUGS
+Other than the 'onfail' option, this package provides the API in
+L<RDF::Trine::Serializer::API>.
 
-Please report any bugs or feature requests to through the GitHub web interface
-at L<https://github.com/kasei/perlrdf/issues>.
+This package will be considerably slower than the non-canonicalising
+N-Triples serializer though, so should only be used for small to medium-sized
+graphs, and only when you need canonicalisation (e.g. for side-by-side
+comparison of two graphs to check they're isomorphic; or creating a
+canonical representation for digital signing).
 
 =head1 SEE ALSO
 
@@ -279,10 +231,8 @@ Toby Inkster, E<lt>tobyink@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2010 Toby Inkster
+Copyright (c) 2010, 2012 Toby Inkster
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.1 or,
-at your option, any later version of Perl 5 you may have available.
+it under the same terms as Perl itself.
 
-=cut
