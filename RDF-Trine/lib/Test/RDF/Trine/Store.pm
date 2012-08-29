@@ -81,7 +81,7 @@ Returns the number of tests run with C<all_store_tests>.
 =cut
 
 sub number_of_tests {
-	return 231;								# Remember to update whenever adding tests
+	return 225;								# Remember to update whenever adding tests
 }
 
 =item C<< number_of_triple_tests >>
