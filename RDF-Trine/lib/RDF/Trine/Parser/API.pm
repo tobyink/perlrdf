@@ -59,7 +59,14 @@ has bindings => (
 
 sub _build_bindings { {} }
 
+has namespaces => (
+    is => 'ro',
+    isa => 'HashRef',
+    lazy => 1,
+    builder => '_build_namespace',
+);
 
+sub _build_namespace { {} }
 
 sub _ensure_fh
 {
@@ -356,5 +363,9 @@ Takes filehandle $fh and parses from it to handler $handler using a graph
 structure, optionally using base URI $base.
 
 =back
+
+=head1 AUTHOR
+
+Konstantin Baierer C<< kba@cpan.org >>
 
 =cut

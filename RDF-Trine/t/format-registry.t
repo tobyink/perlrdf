@@ -24,9 +24,20 @@ use ok RDF::Trine::Serializer;
         'application/x-rdf+json' => 'RDF::Trine::Parser::RDFJSON',
         'application/json'       => 'RDF::Trine::Parser::RDFJSON',
     );
+    my %parsers_nr_expected = (
+        'text/turtle'            => 3,
+        'application/turtle'     => 3,
+        'application/x-turtle'   => 3,
+        'text/plain'             => 1,
+        'text/x-ntriples'        => 1,
+        'application/xhtml+xml'  => 1,
+        'application/x-rdf+json' => 1,
+        'application/json'       => 1,
+    );
     while (my ($type,$parser_expected) = each %parsers_expected) {
         my $parser_found = $reg->find_format_by_media_type( $type )->parsers->[0];
         is $parser_found, $parser_expected, "$type => $parser_found";
+        is $parsers_nr_expected{$type}, scalar( @{$reg->find_format_by_media_type( $type )->parsers} ), "Number of parsers";
     }
 
     diag "serializers";
