@@ -33,7 +33,6 @@ TODO
 package RDF::Trine::Types;
 use strict;
 use URI;
-use RDF::Trine::Namespace qw(xsd);
 use MooseX::Types::URI Uri => { -as => 'MooseX__Types__URI__Uri' };
 use MooseX::Types::Moose qw{:all};
 use MooseX::Types::Path::Class qw{File Dir};
@@ -70,6 +69,12 @@ our ($VERSION);
 BEGIN {
 	$VERSION	= '1.000';
 }
+
+my $xsd = sub {
+	RDF::Trine::Node::Resource->new(
+		'http://www.w3.org/2001/XMLSchema#'.shift,
+	)
+};
 
 =head2 TYPE CONSTRAINTS
 
