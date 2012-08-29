@@ -35,8 +35,7 @@ sub model_to_file {
 	my $self  = shift;
 	my $model = shift;
 	my $file  = $self->_ensure_fh(shift);
-	my $string = $self->serialize_model_to_string($model);
-	print {$file} $string;
+	print {$file} $self->model_to_string($model);
 }
 
 sub model_to_string {

@@ -228,7 +228,7 @@ sub _build_formats {
 		$fc->new(
 			names         => [qw( RDF/JSON RDFJSON )],
 			format_uri    => 'tag:cpan.org,2012:tobyink:format:RDFJSON',
-			media_types   => [qw( application/x-rdf+json )],
+			media_types   => [qw( application/x-rdf+json application/json )],
 			extensions    => [qw( json )],
 			triples       => 1,
 		),
