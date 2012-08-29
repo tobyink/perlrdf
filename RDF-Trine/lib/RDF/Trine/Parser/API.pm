@@ -21,6 +21,45 @@ has [qw(canonicalize )] => (
     default => 0,
 );
 
+has bnode_id => (
+    is => 'ro',
+    isa => 'Num',
+    traits => ['Counter'],
+    lazy => 1,
+    default => 0,
+    handles => {
+        inc_bnode_id => 'inc',
+    },
+);
+
+has bnode_prefix => (
+    is => 'ro',
+    isa => 'Str',
+    lazy => 1,
+    builder => '_build_bnode_prefix',
+);
+
+sub _build_bnode_prefix {
+    my $self = shift;
+    return $self->new_bnode_prefix;
+}
+
+has bindings => (
+    is => 'ro',
+    isa => 'HashRef[Str]',
+    lazy => 1,
+    builder => '_build_bindings',
+    traits => ['Hash'],
+    handles => {
+        set_binding => 'set',
+        get_binding => 'get',
+        has_binding => 'exists',
+    }
+);
+
+sub _build_bindings { {} }
+
+
 
 sub _ensure_fh
 {
