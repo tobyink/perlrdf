@@ -18,7 +18,7 @@ my $p3		= RDF::Trine::Node::Resource->new('http://example.org/bob');
 my $type	= $rdf->type;
 my $person	= $foaf->Person;
 
-my $s		= RDF::Trine::Serializer::TSV->new();
+my $s		= RDF::Trine::Serializer::TSV->new(output_headers => 0);
 
 {
 	my $st1		= RDF::Trine::Statement::Triple->new( $p1, $type, $person );
