@@ -30,10 +30,15 @@ L<RDF::Trine::Parser> class.
 
 package RDF::Trine::Parser::RDFa;
 
-use strict;
-use warnings;
+use Moose;
 
-use base qw(RDF::Trine::Parser);
+with ('RDF::Trine::Parser::API');
+
+use constant media_types => [
+    'application/xhtml+xml',
+    'text/html',
+];
+use RDF::Trine::FormatRegistry '-register_parser';
 
 use Carp;
 use Data::Dumper;
@@ -41,9 +46,9 @@ use Log::Log4perl;
 use Scalar::Util qw(blessed reftype);
 use Module::Load::Conditional qw[can_load];
 
-use RDF::Trine qw(literal);
-use RDF::Trine::Statement::Triple;
-use RDF::Trine::Error qw(:try);
+use RDF::Trine::Error;
+use TryCatch;
+use IO::String;
 
 ######################################################################
 
@@ -52,16 +57,6 @@ BEGIN {
 	$VERSION	= '1.000';
 	if (can_load( modules => { 'RDF::RDFa::Parser' => 0.30 })) {
 		$HAVE_RDFA_PARSER	= 1;
-		$RDF::Trine::Parser::parser_names{ 'rdfa' }	= __PACKAGE__;
-		foreach my $ext (qw(html xhtml htm)) {
-			$RDF::Trine::Parser::file_extensions{ $ext }	= __PACKAGE__;
-		}
-		my $class										= __PACKAGE__;
-		$RDF::Trine::Parser::canonical_media_types{ $class }	= 'application/xhtml+xml';
-		foreach my $type (qw(application/xhtml+xml text/html)) {
-			$RDF::Trine::Parser::media_types{ $type }	= __PACKAGE__;
-		}
-		$RDF::Trine::Parser::format_uris{ 'http://www.w3.org/ns/formats/RDFa' }	= __PACKAGE__;
 	}
 }
 
@@ -73,15 +68,11 @@ Returns a new RDFa parser object with the supplied options.
 
 =cut
 
-sub new {
-	my $class	= shift;
-	my %args	= @_;
+sub BUILD {
+	my $self	= shift;
 	unless ($HAVE_RDFA_PARSER) {
 		throw RDF::Trine::Error -text => "Failed to load RDF::RDFa::Parser >= 0.30";
 	}
-	
-	my $self = bless( { %args }, $class);
-	return $self;
 }
 
 =item C<< parse_into_model ( $base_uri, $data, $model [, context => $context] ) >>
@@ -100,6 +91,23 @@ sub parse {
 	my $base	= shift;
 	my $string	= shift;
 	my $handler	= shift;
+
+	my $fh = (ref $string) ? $string : IO::String->new($string);
+	return $self->_parse_graph($fh, $handler, $base, @_);
+}
+
+sub _parse_bindings {
+    my $self = shift;
+    return $self->_graph_to_bindings( $self->_parse_graph( @_ ) );
+}
+
+sub _parse_graph {
+	my $self	= shift;
+	my $fh   	= shift;
+	my $handler	= shift;
+	my $base	= shift;
+
+	my $string = do { local $/; <$fh> };
 	
 	my $parser  = RDF::RDFa::Parser->new($string, $base, $self->{'options'});
 	$parser->set_callbacks({
@@ -112,7 +120,7 @@ sub parse {
 						my $value	= $o->literal_value;
 						my $dt		= $o->literal_datatype;
 						my $canon	= RDF::Trine::Node::Literal->canonicalize_literal_value( $value, $dt, 1 );
-						$o	= literal( $canon, undef, $dt );
+						$o	= RDF::Trine::Node::Literal->new( $canon, undef, $dt );
 						$st->object( $o );
 					}
 				}
@@ -123,7 +131,6 @@ sub parse {
 	});
 	$parser->consume;
 }
-
 
 1;
 
