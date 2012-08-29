@@ -108,6 +108,16 @@ sub register_serializer {
 	push @{ $self->serializers }, $p;
 }
 
+sub get_parser {
+	my $self = shift;
+	$self->parsers->[0];
+}
+
+sub get_serializer {
+	my $self = shift;
+	$self->serializers->[0];
+}
+
 1;
 
 __END__
@@ -211,6 +221,14 @@ Used by C<find_format_by_capabilities>.
 =item C<< register_parser($classname) >>
 
 =item C<< register_serializer($classname) >>
+
+=item C<< get_parser >>
+
+Gets the first available parser class.
+
+=item C<< get_serializer >>
+
+Gets the first available serializer class.
 
 =back
 
