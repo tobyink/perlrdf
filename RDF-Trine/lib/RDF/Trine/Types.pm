@@ -179,26 +179,6 @@ class_type TrineNamespace, { class => 'RDF::Trine::Namespace' };
 
 =head3 TrineFormat
 
-Coerces
-
-=over 4
-
-=item Str (via RDF::Trine::FomatRegistry lookup)
-
-=back
-
-=cut
-
-class_type TrineFormat, { class => 'RDF::Trine::Format' };
-
-coerce( TrineFormat,
-    from Str, via { RDF::Trine::FormatRegistry->instance->find_format($_) },
-    from ArrayRef, via { RDF::Trine::FormatRegistry->instance->find_format($_->[0], $_->[1]) },
-);
-
-
-=head3 TrineFormat
-
 Coercians from Str is defined:
 
  my $parser     = TrineFormat->coerce('application/rdf+xml')->parsers->[0];
@@ -208,9 +188,10 @@ Coercians from Str is defined:
 
 class_type TrineFormat, { class => 'RDF::Trine::Format' };
 
-coerce TrineFormat,
-    from Str,
-    via  { 'RDF::Trine::FormatRegistry'->instance->find_format($_) };
+coerce( TrineFormat,
+    from Str,      via { RDF::Trine::FormatRegistry->instance->find_format($_) },
+    from ArrayRef, via { RDF::Trine::FormatRegistry->instance->find_format($_->[0], $_->[1]) },
+);
 
 =head3 CPAN_URI
 
