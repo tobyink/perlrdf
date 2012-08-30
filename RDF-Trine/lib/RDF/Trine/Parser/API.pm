@@ -233,7 +233,6 @@ sub parse_into_model {
 	my $fh = (ref $input) ? $input : IO::String->new($input);
 	
 	$model->begin_bulk_ops();
-    # XXX this should distinguish between _parse_graph and _parse_bindings
 	my $s	= $self->_parse_graph( $fh, $handler, $uri );
 	$model->end_bulk_ops();
 	return $s;

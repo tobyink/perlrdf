@@ -1,5 +1,6 @@
 use Test::More tests => 10;
 use Test::JSON;
+use Data::Dumper;
 
 use strict;
 use warnings;
@@ -23,6 +24,7 @@ use_ok( 'RDF::Trine::Iterator::Bindings' );
 	is( $iter->next, 1 );
 	is( $iter->next, 2 );
 	is( $iter->next, undef );
+#	warn Dumper $iter->as_statements;
 }
 
 {
