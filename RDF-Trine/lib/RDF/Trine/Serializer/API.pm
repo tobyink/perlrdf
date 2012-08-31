@@ -3,14 +3,16 @@ package RDF::Trine::Serializer::API;
 use Moose::Role;
 use IO::Detect qw(is_filehandle);
 
-with (
-    'RDF::Trine::Iterator::API::Converter'
-);
+# This appears to be a helper module rather than an API component.
+# Parsers and serializers may wish to compose with it if they need
+# it, but so far no serializers seem to need it, so there doesn't
+# seem to be a reason to have it here.
+#with qw(
+#	RDF::Trine::Iterator::API::Converter
+#);
 
-requires (
-    '_serialize_graph',
-    '_serialize_bindings',
-    'media_types',
+requires qw(
+	media_types
 );
 
 sub _ensure_fh
@@ -24,85 +26,52 @@ sub _ensure_fh
 	return $fh;
 }
 
-sub model_to_file
-{
-	my ($self, $model, $fh, $base) = @_;
-	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_graph( $model->as_stream => $fh, $base );
-}
-
-sub model_to_string
-{
-	my ($self, $model, $base) = @_;
-	my $string;
-	open my $fh, '>', \$string;
-	$self->_serialize_graph( $model->as_stream => $fh, $base );
-	close $fh;
-	return $string;
-}
-
-sub bindings_iterator_to_file
-{
-	my ($self, $iter, $fh, $base) = @_;
-	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_bindings( $iter => $fh, $base );
-}
-
-sub bindings_iterator_to_string
-{
-	my ($self, $iter, $base) = @_;
-	my $string;
-	open my $fh, '>', \$string;
-	$self->_serialize_bindings( $iter => $fh, $base );
-	close $fh;
-	return $string;
-}
-
-sub graph_iterator_to_file
-{
-	my ($self, $iter, $fh, $base) = @_;
-	$fh = $self->_ensure_fh($fh);
-	$self->_serialize_graph( $iter => $fh, $base );
-}
-
-sub graph_iterator_to_string
-{
-	my ($self, $iter, $base) = @_;
-	my $string;
-	open my $fh, '>', \$string;
-	$self->_serialize_graph( $iter => $fh, $base );
-	close $fh;
-	return $string;
-}
-
 sub iterator_to_file
 {
 	my ($self, $iter, $fh, $base) = @_;
-	$iter->is_bindings
-		? $self->bindings_iterator_to_file( $iter => $fh, $base )
-		: $self->graph_iterator_to_file( $iter => $fh, $base )
+	
+	if ($self->DOES('RDF::Trine::Serializer::API::Bindings')
+	and not $self->DOES('RDF::Trine::Serializer::API::Graph'))
+	{
+		return $self->bindings_iterator_to_file( $iter => $fh, $base );
+	}
+	elsif ($self->DOES('RDF::Trine::Serializer::API::Graph')
+	and not $self->DOES('RDF::Trine::Serializer::API::Bindings'))
+	{
+		return $self->bindings_iterator_to_file( $iter => $fh, $base );
+	}
+	elsif ($iter->is_bindings or $iter->is_boolean)
+	{
+		return $self->bindings_iterator_to_file( $iter => $fh, $base );
+	}
+	else
+	{
+		return $self->graph_iterator_to_file( $iter => $fh, $base );
+	}
 }
 
 sub iterator_to_string
 {
 	my ($self, $iter, $base) = @_;
-	$iter->is_bindings
-		? $self->bindings_iterator_to_string( $iter, $base )
-		: $self->graph_iterator_to_string( $iter, $base )
-}
-
-# back-compat
-sub serialize_model_to_file
-{
-	my ($self, $fh, $model) = @_;
-	shift->model_to_file($model, $fh);
-}
-
-# back-compat
-sub serialize_model_to_string
-{
-	my ($self, $model) = @_;
-	shift->model_to_string($model);
+	
+	if ($self->DOES('RDF::Trine::Serializer::API::Bindings')
+	and not $self->DOES('RDF::Trine::Serializer::API::Graph'))
+	{
+		return $self->bindings_iterator_to_string( $iter, $base );
+	}
+	elsif ($self->DOES('RDF::Trine::Serializer::API::Graph')
+	and not $self->DOES('RDF::Trine::Serializer::API::Bindings'))
+	{
+		return $self->bindings_iterator_to_string( $iter, $base );
+	}
+	elsif ($iter->is_bindings or $iter->is_boolean)
+	{
+		return $self->bindings_iterator_to_string( $iter, $base );
+	}
+	else
+	{
+		return $self->graph_iterator_to_string( $iter, $base );
+	}
 }
 
 # back-compat
@@ -126,6 +95,10 @@ __END__
 =head1 NAME
 
 RDF::Trine::Serializer::API - Interface Role for Serializers
+
+=head1 TODO
+
+Split documentation!
 
 =head1 DESCRIPTION
 

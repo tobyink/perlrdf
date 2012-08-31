@@ -40,14 +40,29 @@ sub new {
 	);
 }
 
-sub negotiate {
-	my ($class, %options) = @_;
+sub _negotiate {
+	my ($class, $features, %options) = @_;
 	my $headers = delete $options{'request_headers'};
 	my $choice  = choose(
-		RDF::Trine::FormatRegistry->instance->http_negotiate,
+		RDF::Trine::FormatRegistry->instance->http_negotiate($features),
 		$headers,
 	);
 	$class->new($choice, %options);
+}
+
+sub negotiate {
+	my ($class, %options) = @_;
+	$class->_negotiate(+{ triples => 1 }, %options);
+}
+
+sub negotiate_for_bindings {
+	my ($class, %options) = @_;
+	$class->_negotiate(+{ bindings => 1 }, %options);
+}
+
+sub negotiate_for_quads {
+	my ($class, %options) = @_;
+	$class->_negotiate(+{ quads => 1 }, %options);
 }
 
 {
@@ -139,6 +154,18 @@ representation.
 =end TODO
 
 The rest of C<< %options >> is passed through to the serializer constructor.
+
+This method only negotiates between formats which are capable of holding
+triples, and for which a serializer is known.
+
+=item C<< negotiate_for_quads ( request_headers => $request_headers, %options ) >>
+
+As per C<negotiate> but only negotiates between formats that can hold quads.
+
+=item C<< negotiate_for_bindings ( request_headers => $request_headers, %options ) >>
+
+As per C<negotiate> but only negotiates between formats that can hold SPARQL
+result sets.
 
 =back
 

@@ -6,13 +6,8 @@ use RDF::Trine::FormatRegistry -register_serializer;
 
 use Moose;
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Bindings
 );
-
-sub _serialize_graph {
-	my ($self, $iter, $fh) = @_;
-	$self->_serialize_bindings($iter->as_bindings => $fh);
-}
 
 sub _serialize_bindings {
 	my ($self, $iter, $fh) = @_;

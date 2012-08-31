@@ -10,16 +10,12 @@ use namespace::autoclean;
 use JSON qw(to_json);
 
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Graph
 );
 
 sub _serialize_graph {
 	my ($self, $iter, $fh) = @_;
 	print {$fh} to_json($iter->as_hashref);
-}
-
-sub _serialize_bindings {
-	confess "cannot handle bindings";
 }
 
 sub model_to_file {

@@ -5,7 +5,7 @@ use RDF::Trine::FormatRegistry -register_serializer;
 
 use Moose;
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Graph
 );
 
 sub _serialize_graph {
@@ -13,10 +13,6 @@ sub _serialize_graph {
 	while (my $st = $iter->next) {
 		print {$fh} $self->statement_as_string($st);
 	}
-}
-
-sub _serialize_bindings {
-	confess "cannot handle bindings";
 }
 
 sub model_to_file

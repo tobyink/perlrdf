@@ -20,7 +20,7 @@ use Moose;
 use MooseX::Types::Moose qw(Any HashRef Object Str Undef);
 
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Graph
 );
 
 has used_ns => (
@@ -121,10 +121,6 @@ sub model_to_string {
 		string => 1,
 	);
 	return $sink->string;
-}
-
-sub _serialize_bindings {
-	confess "cannot handle bindings";
 }
 
 sub _serialize_graph {

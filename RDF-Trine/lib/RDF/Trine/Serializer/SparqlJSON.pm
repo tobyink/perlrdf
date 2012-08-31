@@ -8,7 +8,7 @@ use JSON qw(to_json);
 
 use Moose;
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Bindings
 );
 
 sub _serialize_graph {

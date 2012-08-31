@@ -7,7 +7,7 @@ use RDF::Trine::FormatRegistry -register_serializer;
 use Moose;
 use MooseX::Types::Moose qw(Bool);
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Bindings
 );
 
 has output_headers => (

@@ -6,7 +6,7 @@ use RDF::Trine::FormatRegistry -register_serializer;
 
 use Moose;
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Graph
 );
 
 has [qw/ namespaces scoped_namespaces base_uri /] => (is => 'rw');
@@ -45,10 +45,6 @@ sub BUILDARGS {
 		$self->{scoped_namespaces} = $args{scoped_namespaces};
 	}
 	return $self;
-}
-
-sub _serialize_bindings {
-	confess "cannot handle bindings";
 }
 
 sub _serialize_graph {
@@ -184,12 +180,6 @@ sub _statements_same_subject_as_string {
 		return qq[<rdf:Description $id>\n] . $string;
 	}
 }
-
-=item C<< serialize_iterator_to_string ( $iter ) >>
-
-Serializes the iterator to RDF/XML, returning the result as a string.
-
-=cut
 
 sub _serialize_bounded_description {
 	my $self	= shift;

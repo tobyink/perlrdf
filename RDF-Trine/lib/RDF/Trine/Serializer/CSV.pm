@@ -10,7 +10,7 @@ use IO::Handle;
 use Moose;
 use MooseX::Types::Moose qw(Str Bool Object);
 with qw(
-	RDF::Trine::Serializer::API
+	RDF::Trine::Serializer::API::Bindings
 );
 
 has output_headers => (
@@ -68,8 +68,6 @@ sub _serialize_graph {
 		]);
 	}
 }
-
-use Data::Dumper;
 
 sub _serialize_bindings {
 	my ($self, $iter, $fh) = @_;
