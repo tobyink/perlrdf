@@ -76,10 +76,6 @@ Constructs a triple statement.
 
 Alternative constructor.
 
-=item C<< from_redland($redland_st) >>
-
-Consumes triples from RDF::Redland.
-
 =back
 
 =head2 Attributes
