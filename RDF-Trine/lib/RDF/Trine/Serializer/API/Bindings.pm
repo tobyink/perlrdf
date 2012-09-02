@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::API::Bindings;
 
-use Moose::Role
+use Moose::Role;
 with qw(
 	RDF::Trine::Serializer::API
 	RDF::Trine::Serializer::API::Graph
@@ -32,3 +32,4 @@ sub bindings_iterator_to_string
 	return $string;
 }
 
+1;

@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::API::Graph;
 
-use Moose::Role
+use Moose::Role;
 with qw(
 	RDF::Trine::Serializer::API
 );
@@ -57,3 +57,4 @@ sub serialize_model_to_string
 	shift->model_to_string($model);
 }
 
+1;

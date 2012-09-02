@@ -38,7 +38,7 @@ sub iterator_to_file
 	elsif ($self->DOES('RDF::Trine::Serializer::API::Graph')
 	and not $self->DOES('RDF::Trine::Serializer::API::Bindings'))
 	{
-		return $self->bindings_iterator_to_file( $iter => $fh, $base );
+		return $self->graph_iterator_to_file( $iter => $fh, $base );
 	}
 	elsif ($iter->is_bindings or $iter->is_boolean)
 	{
@@ -62,7 +62,7 @@ sub iterator_to_string
 	elsif ($self->DOES('RDF::Trine::Serializer::API::Graph')
 	and not $self->DOES('RDF::Trine::Serializer::API::Bindings'))
 	{
-		return $self->bindings_iterator_to_string( $iter, $base );
+		return $self->graph_iterator_to_string( $iter, $base );
 	}
 	elsif ($iter->is_bindings or $iter->is_boolean)
 	{
