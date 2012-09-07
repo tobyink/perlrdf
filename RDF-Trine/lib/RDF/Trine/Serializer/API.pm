@@ -110,7 +110,7 @@ Every Serializer needs to implement:
 
 =item C<< media_types >>
 
-A constant arrayref of supported media types, used for linking serializers to formats
+A list of supported media types, used for linking serializers to formats
 
 =item C<< _serialize_bindings($iter, $fh, $base) >>
 

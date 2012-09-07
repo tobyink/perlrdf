@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::TSV;
 
-use constant media_types => [qw( text/tab-separated-values )];
+use constant media_types => qw( text/tab-separated-values );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

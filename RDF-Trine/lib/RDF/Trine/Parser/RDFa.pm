@@ -34,10 +34,10 @@ use Moose;
 
 with ('RDF::Trine::Parser::API');
 
-use constant media_types => [
+use constant media_types => (
     'application/xhtml+xml',
     'text/html',
-];
+);
 use RDF::Trine::FormatRegistry '-register_parser';
 
 use Carp;

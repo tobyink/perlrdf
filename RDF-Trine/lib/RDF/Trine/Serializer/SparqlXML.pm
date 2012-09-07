@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::SparqlXML;
 
-use constant media_types => [qw( application/sparql-results+xml )];
+use constant media_types => qw( application/sparql-results+xml );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

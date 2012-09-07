@@ -12,7 +12,7 @@ use RDF::Trine::Namespace qw(rdf);
 
 use constant DEBUG => 0;
 
-use constant media_types => [qw( text/turtle application/turtle )];
+use constant media_types => qw( text/turtle application/turtle );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

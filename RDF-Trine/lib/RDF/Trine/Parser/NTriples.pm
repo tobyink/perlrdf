@@ -33,7 +33,7 @@ use Moose;
 
 
 use utf8;
-use constant media_types => ['text/plain'];
+use constant media_types => ('text/plain');
 use RDF::Trine::FormatRegistry '-register_parser';
 
 use Carp;

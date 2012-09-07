@@ -14,7 +14,6 @@ sub import {
 	return unless $cmd;
 	
 	my $registry = $class->instance;
-
 	
 	if ($cmd eq '-format') {
 		$registry->register_format(
@@ -25,7 +24,7 @@ sub import {
 	if ($cmd eq '-register_parser') {
 		my $parser = caller;
 		my $format;
-		MT: for my $mt (@{ $parser->media_types }) {
+		MT: for my $mt ( $parser->media_types ) {
 			FMT: for my $fmt (@{ $registry->formats }) {
 				if ($fmt->handles_media_type($mt)) {
 					$format = $fmt;
@@ -34,8 +33,7 @@ sub import {
 				}
 			}
 		}
-		confess "No known formats with media types: "
-			. join(q[ ], @{ $parser->media_types })
+		confess "No known formats with media types: ".join(q[ ], $parser->media_types)
 			unless $format;
 		$format->register_parser($parser);
 	}
@@ -43,7 +41,7 @@ sub import {
 	if ($cmd eq '-register_serializer') {
 		my $serializer = caller;
 		my $format;
-		MT: for my $mt (@{ $serializer->media_types }) {
+		MT: for my $mt ( $serializer->media_types ) {
 			FMT: for my $fmt (@{ $registry->formats }) {
 				if ($fmt->handles_media_type($mt)) {
 					$format = $fmt;
@@ -51,8 +49,7 @@ sub import {
 				}
 			}
 		}
-		confess "No known formats with media types: "
-			. join(q[ ], @{ $serializer->media_types })
+		confess "No known formats with media types: ".join(q[ ], $serializer->media_types)
 			unless $format;
 		$format->register_serializer($serializer);
 	}
@@ -352,11 +349,11 @@ register themselves with the format registry like this:
   };
   
   package My::Parser::Monkey;
-  use constant media_types => [qw(text/x-monkey)];
+  use constant media_types => qw(text/x-monkey);
   use RDF::Trine::FormatRegistry -register_parser;
   
   package My::Serializer::Monkey;
-  use constant media_types => [qw(text/x-monkey)];
+  use constant media_types => qw(text/x-monkey);
   use RDF::Trine::FormatRegistry -register_serializer;
 
 You can then find parsers and serializers from the registry:

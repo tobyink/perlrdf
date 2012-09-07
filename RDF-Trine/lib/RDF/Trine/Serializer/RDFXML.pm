@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::RDFXML;
 
-use constant media_types => [qw( application/rdf+xml )];
+use constant media_types => qw( application/rdf+xml );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

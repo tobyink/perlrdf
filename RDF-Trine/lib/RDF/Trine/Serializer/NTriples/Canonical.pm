@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::NTriples::Canonical;
 
-use constant media_types => [qw( text/plain )];
+use constant media_types => qw( text/plain );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

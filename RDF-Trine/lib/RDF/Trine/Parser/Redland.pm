@@ -50,7 +50,7 @@ use Scalar::Util qw(blessed reftype);
 
 our ($VERSION, $HAVE_REDLAND_PARSER, %FORMATS);
 BEGIN {
-	%FORMATS = (
+	%FORMATS = (  # is this big hash still needed?
 	rdfxml	 => [
 					'RDF::Trine::Parser::Redland::RDFXML',
 					'http://www.w3.org/ns/formats/RDF_XML',
@@ -202,7 +202,7 @@ sub parse {
 
 package RDF::Trine::Parser::Turtle::Redland;
 use Moose;
-use constant media_types => [ 'application/x-turtle', 'application/turtle', 'text/turtle' ];
+use constant media_types => ( 'application/x-turtle', 'application/turtle', 'text/turtle' );
 use RDF::Trine::FormatRegistry '-register_parser';
 use constant redland_parser_format => 'turtle';
 with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
@@ -212,7 +212,7 @@ with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 package RDF::Trine::Parser::RDFXML::Redland;
 no warnings 'redefine';
 use Moose;
-use constant media_types => [ 'application/rdf+xml', 'application/octet-stream', ];
+use constant media_types => ( 'application/rdf+xml', 'application/octet-stream', );
 use RDF::Trine::FormatRegistry '-register_parser';
 use constant redland_parser_format => 'rdfxml';
 with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
@@ -222,7 +222,7 @@ with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 package RDF::Trine::Parser::NTriples::Redland;
 no warnings 'redefine';
 use Moose;
-use constant media_types => [ 'text/plain' ];
+use constant media_types => ( 'text/plain' );
 use RDF::Trine::FormatRegistry '-register_parser';
 use constant redland_parser_format => 'ntriples';
 with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
@@ -231,7 +231,7 @@ with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
 package RDF::Trine::Parser::Trig::Redland;
 use Moose;
-use constant media_types => [ 'application/x-trig' ];
+use constant media_types => ( 'application/x-trig' );
 use RDF::Trine::FormatRegistry '-register_parser';
 use constant redland_parser_format => 'trig';
 with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
@@ -240,9 +240,9 @@ with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
 package RDF::Trine::Parser::RDFa::Redland;
 use Moose;
-use constant media_types => [ 'application/xhtml+xml' ];
+use constant media_types => ( 'application/xhtml+xml' );
 use RDF::Trine::FormatRegistry '-register_parser';
-use constant redland_parser_format => 'trig';
+use constant redland_parser_format => 'librdfa';
 with ('RDF::Trine::Parser::API', 'RDF::Trine::Parser::API::Redland');
 
 

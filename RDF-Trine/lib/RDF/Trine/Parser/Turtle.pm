@@ -45,11 +45,11 @@ use RDF::Trine::Statement::Triple;
 use RDF::Trine::Namespace;
 use RDF::Trine::Error;
 
-use constant media_types => [
+use constant media_types => (
     'application/x-turtle',
     'application/turtle',
     'text/turtle'
-];
+);
 
 use RDF::Trine::FormatRegistry '-register_parser';
 

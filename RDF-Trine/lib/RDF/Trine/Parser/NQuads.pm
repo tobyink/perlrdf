@@ -43,9 +43,9 @@ use RDF::Trine qw(literal);
 use RDF::Trine::Statement::Triple;
 use RDF::Trine::Error;
 use TryCatch;
-use constant media_types => [
+use constant media_types => (
     'text/x-nquads',
-];
+);
 
 extends 'RDF::Trine::Parser::NTriples';
 

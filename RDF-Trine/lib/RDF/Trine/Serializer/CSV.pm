@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::CSV;
 
-use constant media_types => [qw( text/csv )];
+use constant media_types => qw( text/csv );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

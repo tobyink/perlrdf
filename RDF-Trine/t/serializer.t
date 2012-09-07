@@ -11,7 +11,7 @@ use RDF::Trine::Namespace qw(rdf foaf);
 use RDF::Trine::Error qw(:try);
 use RDF::Trine::Serializer;
 
-throws_ok { RDF::Trine::Serializer->new('foobar') } 'RDF::Trine::Error::SerializationError', "RDF::Trine::Serializer constructor throws on unrecognized serializer name";
+throws_ok { RDF::Trine::Serializer->new('foobar') } 'RDF::Trine::Exception', "RDF::Trine::Serializer factory throws on unrecognized serializer name";
 
 my %name_expect	= (
 	'nquads'	=> 'RDF::Trine::Serializer::NQuads',
@@ -28,13 +28,13 @@ my %type_expect	= (
 	'ntriples-canonical'	=> [],
 	'rdfjson'	=> [qw(application/json application/x-rdf+json)],
 	'rdfxml'	=> [qw(application/rdf+xml)],
-	'turtle'	=> [qw(application/turtle application/x-turtle text/rdf+n3 text/turtle)],
+	'turtle'	=> [qw(application/turtle text/turtle)],
 );
 
 while (my($k,$v) = each(%name_expect)) {
 	my $p	= RDF::Trine::Serializer->new( $k );
 	isa_ok( $p, $v );
-	my @types	= $p->media_types;
+	my @types	= sort $p->media_types;
 	is_deeply( \@types, $type_expect{ $k }, "expected media types for $k" );
 }
 

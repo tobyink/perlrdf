@@ -34,10 +34,10 @@ use Moose;
 #no warnings 'redefine';
 #no warnings 'once';
 
-use constant media_types => [
+use constant media_types => (
     'application/json',
     'application/x-rdf+json',
-];
+);
 
 use RDF::Trine::FormatRegistry '-register_parser';
 

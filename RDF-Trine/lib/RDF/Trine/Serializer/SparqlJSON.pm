@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::SparqlJSON;
 
-use constant media_types => [qw( application/sparql-results+json )];
+use constant media_types => qw( application/sparql-results+json );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

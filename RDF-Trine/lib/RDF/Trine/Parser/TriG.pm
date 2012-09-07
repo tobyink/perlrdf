@@ -34,9 +34,9 @@ our $VERSION; BEGIN { $VERSION = '1.000'; }
 
 use Moose;
 
-use constant media_types => [
+use constant media_types => (
     'application/x-trig',
-];
+);
 
 use RDF::Trine::FormatRegistry '-register_parser';
 

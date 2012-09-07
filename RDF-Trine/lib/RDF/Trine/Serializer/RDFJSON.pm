@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::RDFJSON;
 
-use constant media_types => [qw( application/x-rdf+json )];
+use constant media_types => qw( application/x-rdf+json application/json );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

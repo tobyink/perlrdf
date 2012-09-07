@@ -1,6 +1,6 @@
 package RDF::Trine::Serializer::NQuads;
 
-use constant media_types => [qw( text/x-nquads )];
+use constant media_types => qw( text/x-nquads );
 use RDF::Trine;
 use RDF::Trine::FormatRegistry -register_serializer;
 

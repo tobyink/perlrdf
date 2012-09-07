@@ -5,6 +5,11 @@ use List::MoreUtils qw(uniq);
 use IO::Detect qw(is_filehandle);
 use IO::String;
 
+# This shouldn't be necessary. The proper place for 
+# _bindings_to_graph and _graph_to_bindings should
+# be methods on the iterator object itself. (And
+# indeed graph iterators do have an as_bindings
+# method.)
 with (
     'RDF::Trine::Iterator::API::Converter'
 );
@@ -349,7 +354,7 @@ Every Parser needs to implement
 
 =item media_types
 
-A constant array of supported media types, used for linking parsers to formats
+A list of supported media types, used for linking parsers to formats
 
 =item _parse_bindings( $fh, $handler, $base )
 
