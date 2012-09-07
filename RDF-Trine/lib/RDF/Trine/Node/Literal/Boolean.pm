@@ -1,10 +1,8 @@
 package RDF::Trine::Node::Literal::Boolean;
 
 use utf8;
-use Moose;
+use Moose::Role;
 use namespace::autoclean;
-
-extends 'RDF::Trine::Node::Literal';
 
 with qw(
 	RDF::Trine::Node::API::Canonicalize
@@ -50,8 +48,6 @@ RDF::Trine::Node::Literal::_register_datatype(
 	__PACKAGE__,
 );
 
-__PACKAGE__->meta->make_immutable;
-
 1;
 
 
@@ -84,7 +80,7 @@ Returns a canonicalized literal C<< "false"^^xsd:boolean >>.
 
 =over
 
-=item C<< truth >> 
+=item C<< truth >>
 
 Returns true if the literal is equivalent to C<< "true"^^xsd:boolean >>.
 

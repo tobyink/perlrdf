@@ -118,8 +118,7 @@ sub parse_file {
 	my $base	= shift;
 	my $fh		= shift;
 	my $handler	= shift;
-
-    return $self->_parse_graph( $fh, $handler, $base );
+	return $self->_parse_graph( $fh, $handler, $base );
 }
 
 sub _parse_bindings {

@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-RDF::Trine::Types - MooseX::Types for RDF::Trine 
+RDF::Trine::Types - MooseX::Types for RDF::Trine
 
 =head1 VERSION
 
@@ -11,19 +11,19 @@ This document describes RDF::Trine::Types version 1.000
 
 =head2 SYNOPSIS
 
-    use RDF::Trine qw(literal)
-    use RDF::Trine::Types qw(TrineLiteral TrineNode)
+ use RDF::Trine qw(literal)
+ use RDF::Trine::Types qw(TrineLiteral TrineNode)
 
-    # type checking
-    $val1 = 33;
-    $val2 = literal($val1);
-    is_TrineLiteral($val1) # 0
-    is_TrineLiteral($val2) # 1
+ # type checking
+ $val1 = 33;
+ $val2 = literal($val1);
+ is_TrineLiteral($val1) # 0
+ is_TrineLiteral($val2) # 1
 
 
-    # coercion where available
-    my $literal1 = TrineLiteral->coerce(66); # literal(66)
-    my $literal2 = TrineLiteral->coerce($literal1); # $literal1 == $literal2
+ # coercion where available
+ my $literal1 = TrineLiteral->coerce(66); # literal(66)
+ my $literal2 = TrineLiteral->coerce($literal1); # $literal1 == $literal2
 
 =head2 DESCRIPTION
 
@@ -33,87 +33,57 @@ TODO
 package RDF::Trine::Types;
 use strict;
 use URI;
+use RDF::Trine qw(iri);
+use RDF::Trine::Namespace qw(xsd);
 use MooseX::Types::URI Uri => { -as => 'MooseX__Types__URI__Uri' };
 use MooseX::Types::Moose qw{:all};
 use MooseX::Types::Path::Class qw{File Dir};
 use MooseX::Types -declare => [
-    'TrineNode',
-    'TrineBlank',
-    'TrineLiteral',
-    'TrineNil',
-    'TrineResource',
+	'TrineNode',
+	'TrineBlank',
+	'TrineLiteral',
+	'TrineResource',
 
-    'ArrayOfTrineResources',
-    'ArrayOfTrineNodes',
-    'ArrayOfTrineLiterals',
+	'TrineLiteralOrTrineResorce',
+	'TrineBlankOrUndef',
 
-    'HashOfTrineResources',
-    'HashOfTrineNodes',
-    'HashOfTrineLiterals',
+	'TrineStore',
+	'TrineModel',
 
-    'TrineLiteralOrTrineResource',
-    'TrineBlankOrUndef',
+	'ArrayOfTrineResources',
+	'ArrayOfTrineNodes',
+	'ArrayOfTrineLiterals',
 
-    'TrineStore',
-    'TrineModel',
+	'HashOfTrineResources',
+	'HashOfTrineNodes',
+	'HashOfTrineLiterals',
 
-    'TrineNamespace',
-    'TrineFormat',
-
-    'CPAN_URI',
-    'UriStr',
-    'LanguageTag',
-    ];
+	'CPAN_URI',
+	'UriStr',
+	'LanguageTag',
+	];
 
 our ($VERSION);
 BEGIN {
 	$VERSION	= '1.000';
 }
 
-my $xsd = sub {
-	RDF::Trine::Node::Resource->new(
-		'http://www.w3.org/2001/XMLSchema#'.shift,
-	)
-};
-
 =head2 TYPE CONSTRAINTS
 
 =cut
 
 
-=head3 TrineNode
-
-Evertything that does RDF::Trine::Node::API
+=head3 TrineNode NOCOERCION
 
 =cut
 
-role_type TrineNode, { role => 'RDF::Trine::Node::API'  };
+subtype TrineNode,
+	as Object,
+	where {$_->DOES('RDF::Trine::Node::API')};
 
-=head3 TrineResource 
+=head3 TrineResource
 
-A RDF::Trine::Node::Resource
-
-Can be coerced from
-
-=over 4
-
-=item * String
-
-=item * URI (GAAS' CPAN URI module)
-
-=item * Path::Class::File
-
-=item * Moosex::Types::Path::Class::File
-
-=item * Path::Class::Dir
-
-=item * Moosex::Types::Path::Class::Dir
-
-=item * ScalarRef (for 'data:' URIs, i.e. base64 encoded data, like images)
-
-=item * HashRef (using URI::FromHash)
-
-=back
+Coercion delegated to MooseX::Types::URI
 
 =cut
 
@@ -127,14 +97,6 @@ Coercion from Int, Bool, Num, Str
 
 class_type TrineLiteral, { class => 'RDF::Trine::Node::Literal' };
 
-=head3 TrineNil
-
-Coercion from anything
-
-=cut
-
-class_type TrineNil, { class => 'RDF::Trine::Node::Nil' };
-
 =head3 TrineBlank
 
 No Coercion
@@ -145,15 +107,7 @@ class_type TrineBlank, { class => 'RDF::Trine::Node::Blank' };
 
 =head3 TrineModel
 
-Coercion from
-
-=over 4
-
-=item * Undef (temporary_model)
-
-=item * Anything that can be coerced to UriStr (by using RDF::Trine::Parser->parse_url_into_model)
-
-=back
+No Coercion
 
 =cut
 
@@ -161,43 +115,17 @@ class_type TrineModel, { class => 'RDF::Trine::Model' };
 
 =head3 TrineStore
 
-Everything that does RDF::Trine::Store::API
-
 No Coercion
 
 =cut
 
-role_type TrineStore, { role => 'RDF::Trine::Store::API' };
-
-=head3 TrineNamespace
-
-Coercion delegates to new
-
-=cut
-
-class_type TrineNamespace, { class => 'RDF::Trine::Namespace' };
-
-=head3 TrineFormat
-
-Coercians from Str is defined:
-
- my $parser     = TrineFormat->coerce('application/rdf+xml')->parsers->[0];
- my $serializer = TrineFormat->coerce('Turtle')->serializers->[0];
-
-=cut
-
-class_type TrineFormat, { class => 'RDF::Trine::Format' };
-
-coerce( TrineFormat,
-    from Str,      via { RDF::Trine::FormatRegistry->instance->find_format($_) },
-    from ArrayRef, via { RDF::Trine::FormatRegistry->instance->find_format($_->[0], $_->[1]) },
-);
+class_type TrineStore, { class => 'RDF::Trine::Store' };
 
 =head3 CPAN_URI
 
 A URI as in the URI CPAN module by GAAS
 
-No Coercion (see MooseX::Types::URI for that)
+No Coercion
 
 =cut
 
@@ -205,15 +133,9 @@ class_type CPAN_URI, { class => 'URI' };
 
 =head3 TrineBlankOrUndef
 
-Coerces from
+Either a Blank Node or undef
 
-=over 4
-
-=item * false value (undef)
-
-=item * true value (Blank Node)
-
-=back
+No Coercion
 
 =cut
 
@@ -221,29 +143,11 @@ subtype TrineBlankOrUndef, as Maybe[TrineBlank];
 
 =head3 ArrayOfTrineResources
 
-Coerces from
-
-=over 4
-
-=item * RDF::Trine::Node::Resource (by wrapping in an ArrayRef)
-
-=item * Array (by coercing all values to TrineResource)
-
-=item * something (by coercing something to TrineResource and wrapping it in an ArrayRef)
-
-=back
-
-=cut
-
-subtype ArrayOfTrineResources, as ArrayRef[TrineResource];
-
-=head3 ArrayOfTrineNodes
-
 No coercion
 
 =cut
 
-subtype ArrayOfTrineNodes, as ArrayRef[TrineNode];
+subtype ArrayOfTrineResources, as ArrayRef[TrineResource];
 
 =head3 HashOfTrineResources
 
@@ -269,6 +173,14 @@ No coercion
 
 subtype HashOfTrineLiterals, as HashRef[TrineLiteral];
 
+=head3 ArrayOfTrineNodes
+
+No coercion
+
+=cut
+
+subtype ArrayOfTrineNodes, as ArrayRef[TrineNode];
+
 =head3 HashOfTrineNodes
 
 No coercion
@@ -279,15 +191,12 @@ subtype HashOfTrineNodes, as HashRef[TrineNode];
 
 =head3 UriStr
 
-Value is coerced to TrineResource, than stringified
+No coercion
 
 =cut
 
 subtype UriStr, as Str;
 
-#-----------------------------------------------------------------------------#
-# COERCIONS
-#-----------------------------------------------------------------------------#
 =head3 LanguageTag
 
 No coercion
@@ -296,78 +205,67 @@ No coercion
 
 subtype LanguageTag, as Str, where { length $_ };
 
+# coerce( CPAN_URI,
+#	  from Str, via { if (/^[a-z]+:/) { URI->new($_) },
+# );
+
 coerce( TrineBlankOrUndef,
-    from Bool, via { return undef unless $_; RDF::Trine::Node::Blank->new },
+	from Bool, via { return undef unless $_; RDF::Trine::Node::Blank->new },
 );
-
-coerce (TrineResource,
-    from Str, via { RDF::Trine::Node::Resource->new( $_ ) },
-    from CPAN_URI, via { RDF::Trine::Node::Resource->new( $_->as_string ) },
-);
-for (File, Dir, ScalarRef, HashRef){
-    coerce( TrineResource,
-        from $_,
-            via {
-                my $str = MooseX__Types__URI__Uri->coerce( $_ );
-                $str = $str->as_string if ref $str;
-                RDF::Trine::Node::Resource->new($str )
-            }
-    );
-};
-
-coerce TrineNil,
-    from Value, via { RDF::Trine::Node::Nil->instance };
 
 coerce( ArrayOfTrineLiterals,
-    from TrineLiteral, via { [ $_ ] },
-    from ArrayRef, via { my $u = $_; [map {TrineLiteral->coerce($_)} @$u] },
-    from Value, via { [ TrineLiteral->coerce( $_ ) ] },
+	from ArrayRef, via { my $u = $_; [map {TrineLiteral->coerce($_)} @$u] },
+);
+
+
+coerce (TrineResource,
+	from Str, via { iri( $_ ) },
+	from CPAN_URI, via { iri( $_->as_string ) },
 );
 
 coerce( ArrayOfTrineResources,
-    # from Str, via { [ TrineResource->coerce( $_ ) ] },
-    from TrineResource, via { [ $_ ] },
-    from ArrayRef, via { my $u = $_; [map {TrineResource->coerce($_)} @$u] },
-    from Value, via { [ TrineResource->coerce( $_ ) ] },
+	# from Str, via { [ TrineResource->coerce( $_ ) ] },
+	from TrineResource, via { [ $_ ] },
+	from ArrayRef, via { my $u = $_; [map {TrineResource->coerce($_)} @$u] },
+	from Value, via { [ TrineResource->coerce( $_ ) ] },
 );
 
 coerce (TrineNode,
-    from TrineBlank, via { $_ },
-    from TrineResource, via { $_ },
-    from Defined, via {TrineResource->coerce( $_ )},
+	from TrineBlank, via { $_ },
+	from TrineResource, via { $_ },
+	from Defined, via {TrineResource->coerce( $_ )},
 );
 
 coerce (UriStr,
-    from Defined, via { TrineResource->coerce( $_)->uri },
+	from Defined, via { TrineResource->coerce( $_)->uri },
 );
 
 coerce( TrineModel,
-    from Undef, via { RDF::Trine::Model->temporary_model },
-    from Str, via {
-        my $m = TrineModel->coerce;
-        my $uri = UriStr->coerce($_);
-        my $ok = RDF::Trine::Parser->parse_url_into_model( $uri, $m ); #, content_cb => sub { warn Dumper @_ } );
-        return $m;
-    },
+	from Undef, via { RDF::Trine::Model->temporary_model },
+	from UriStr, via {
+		my $m = TrineModel->coerce;
+		RDF::Trine::Parser->parse_url_into_model( $_, $m );
+		return $m;
+	},
 );
 
 coerce( TrineStore,
-    from Undef, via { RDF::Trine::Store->temporary_store },
-    from Str, via { RDF::Trine::Store->new_with_string( $_ ) },
-    from HashRef, via { RDF::Trine::Store->new_with_config( $_ ) },
-    from Object, via { RDF::Trine::Store->new_with_object( $_ ) },
-    from Defined, via { RDF::Trine::Store->new( $_ ) },
+	from Undef, via { RDF::Trine::Store->temporary_store },
+	from Defined, via { RDF::Trine::Store->new ( $_ ) },
 );
 coerce( TrineLiteral,
-    from Int   , via { RDF::Trine::Node::Literal->new({ value=> $_  , datatype => $xsd->int     }); },
-    from Bool  , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->boolean }); },
-    from Num   , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->numeric }); },
-    from Str   , via { RDF::Trine::Node::Literal->new({ value => $_ , datatype => $xsd->string  }); },
-    from Value , via { RDF::Trine::Node::Literal->new({ value => $_ }) },
+	from Int, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->int); },
+	from Bool, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->boolean); },
+	from Num, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->numeric); },
+	from Str, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->string); },
+	from Value, via { RDF::Trine::Node::Literal->new($_); },
 );
-coerce( TrineNamespace,
-    from Defined, via { RDF::Trine::Namespace->new( UriStr->coerce($_) ) }
-);
+
+for (File, Dir, ScalarRef, HashRef, "Path::Class::File", "Path::Class::Dir"){
+	coerce TrineResource,
+		from $_,
+			via { iri( MooseX__Types__URI__Uri->coerce( $_ ) ) };
+};
 
 1;
 
@@ -380,7 +278,7 @@ at L<https://github.com/kasei/perlrdf/issues>.
 
 =head1 AUTHOR
 
-Konstantin Baierer  C<< <kba@cpan.org> >>
+Konstantin Baierer	C<< <kba@cpan.org> >>
 
 =head1 COPYRIGHT
 

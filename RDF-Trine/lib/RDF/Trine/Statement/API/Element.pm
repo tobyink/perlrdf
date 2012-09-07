@@ -6,11 +6,11 @@
 	use MooseX::Role::Parameterized;
 	
 	parameter name => (
-		isa      => Str,
+		isa      => 'Str',
 		required => 1,
 	);
 	parameter require => (
-		isa      => Bool,
+		isa      => 'Bool',
 		default  => 1,
 	);
 	role {

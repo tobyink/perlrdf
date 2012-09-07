@@ -103,7 +103,7 @@ exit;
 # This document contains a graph with non-ASCII chars.
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix ex: <http://www.example.org/vocabulary#> .
-_:a foaf:name "Bob" . 
+_:a foaf:name "Bob" .
 _:a ex:likes "Blåbærsyltetøy"@no .
 END
 	$parser->parse_into_model(undef, $ttl, $model);
