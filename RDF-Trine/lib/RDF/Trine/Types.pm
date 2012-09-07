@@ -33,8 +33,8 @@ TODO
 package RDF::Trine::Types;
 use strict;
 use URI;
-use RDF::Trine qw(iri);
-use RDF::Trine::Namespace qw(xsd);
+#use RDF::Trine qw(iri);
+#use RDF::Trine::Namespace qw(xsd);
 use MooseX::Types::URI Uri => { -as => 'MooseX__Types__URI__Uri' };
 use MooseX::Types::Moose qw{:all};
 use MooseX::Types::Path::Class qw{File Dir};
@@ -68,6 +68,8 @@ our ($VERSION);
 BEGIN {
 	$VERSION	= '1.000';
 }
+
+my $xsd = sub { q[http://www.w3.org/2001/XMLSchema#].shift };
 
 =head2 TYPE CONSTRAINTS
 
@@ -235,8 +237,8 @@ coerce( ArrayOfTrineLiterals,
 
 
 coerce (TrineResource,
-	from Str, via { iri( $_ ) },
-	from CPAN_URI, via { iri( $_->as_string ) },
+	from Str, via { RDF::Trine::Node::Resource->new({ value=> $_ }) },
+	from CPAN_URI, via { RDF::Trine::Node::Resource->new({ value=> $_->as_string }) },
 );
 
 coerce( ArrayOfTrineResources,
@@ -270,17 +272,17 @@ coerce( TrineStore,
 	from Defined, via { RDF::Trine::Store->new ( $_ ) },
 );
 coerce( TrineLiteral,
-	from Int, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->int); },
-	from Bool, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->boolean); },
-	from Num, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->numeric); },
-	from Str, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->string); },
+	from Int, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->('int')); },
+	from Bool, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->('boolean')); },
+	from Num, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->('numeric')); },
+	from Str, via { RDF::Trine::Node::Literal->new($_, undef, $xsd->('string')); },
 	from Value, via { RDF::Trine::Node::Literal->new($_); },
 );
 
 for (File, Dir, ScalarRef, HashRef, "Path::Class::File", "Path::Class::Dir"){
 	coerce TrineResource,
 		from $_,
-			via { iri( MooseX__Types__URI__Uri->coerce( $_ ) ) };
+			via { RDF::Trine::Node::Resource->new({ value=> MooseX__Types__URI__Uri->coerce($_) }) };
 };
 
 1;
